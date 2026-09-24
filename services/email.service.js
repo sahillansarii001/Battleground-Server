@@ -84,9 +84,14 @@ const getTemplate = (templateName, variables) => {
   }
 };
 
-export const sendTeamApprovalEmail = async (email, temporaryPassword, teamName) => {
-  const html = getTemplate('team-approved', { teamName, temporaryPassword, loginUrl: process.env.CLIENT_URL || 'http://localhost:3000' });
-  await sendEmail({ email, subject: 'Team Approved - BGMI Tournament', html });
+export const sendTeamApprovalEmail = async (email, temporaryPassword, teamName, communityLink) => {
+  const html = getTemplate('team-approved', { 
+    teamName, 
+    temporaryPassword, 
+    loginUrl: process.env.CLIENT_URL || 'http://localhost:3000',
+    communityLink: communityLink || 'https://t.me/bgmi_tournament'
+  });
+  await sendEmail({ email, subject: 'Squad Deployment Authorized - BGMI Tournament', html });
 };
 
 export const sendTeamRejectionEmail = async (email, reason, teamName) => {

@@ -196,7 +196,10 @@ export const approveTeam = async (req, res) => {
       targetId: team._id,
     });
 
-    await sendTeamApprovalEmail(team.email, temporaryPassword, team.teamName);
+    const settings = await Settings.findOne();
+    const communityLink = settings ? settings.communityLink : 'https://t.me/bgmi_tournament';
+
+    await sendTeamApprovalEmail(team.email, temporaryPassword, team.teamName, communityLink);
 
     res.json({ success: true, message: 'Team approved successfully', data: team });
   } catch (error) {

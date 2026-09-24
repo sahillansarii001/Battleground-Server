@@ -1,4 +1,14 @@
-<h2>Your Team {{teamName}} is Approved!</h2>
-<p>Congratulations, your team has been approved for the BGMI Tournament.</p>
-<p>Your temporary password is: <strong>{{temporaryPassword}}</strong></p>
-<p>Please login and change your password immediately at <a href='{{loginUrl}}'>{{loginUrl}}</a>.</p>
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #080A0C; color: #FFFFFF; padding: 20px; border: 1px solid #111518;">
+  <h2 style="color: #FF6A00; text-transform: uppercase; letter-spacing: 2px;">Your Team {{teamName}} is Approved!</h2>
+  <p style="color: #B8C0C2;">Congratulations, your squad deployment has been authorized for the BGMI Tournament.</p>
+  <div style="background-color: #111518; border-left: 4px solid #FF6A00; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #B8C0C2; font-size: 12px; text-transform: uppercase;">Access Code</p>
+    <p style="margin: 5px 0 0; font-size: 24px; font-weight: bold;">{{temporaryPassword}}</p>
+  </div>
+  <p style="color: #B8C0C2;">Please login to the Command Center and change your access code immediately at <a href="{{loginUrl}}" style="color: #FF6A00;">{{loginUrl}}</a>.</p>
+  
+  <div style="margin-top: 30px; text-align: center;">
+    <p style="color: #B8C0C2; margin-bottom: 15px;">Join our community for tournament updates and intel:</p>
+    <a href="{{communityLink}}" style="background-color: #39B54A; color: #000; padding: 12px 24px; text-decoration: none; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; display: inline-block;">Join Telegram Community</a>
+  </div>
+</div>
