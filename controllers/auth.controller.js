@@ -1,9 +1,9 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
-import { config } from '../config/env.js';
+import 'dotenv/config';
 
 const generateToken = (id) => {
-  return jwt.sign({ id }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
+  return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 };
 
 export const login = async (req, res) => {

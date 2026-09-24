@@ -17,7 +17,8 @@ const teamSchema = new mongoose.Schema({
     unique: true,
   },
   logo: {
-    type: String,
+    url: String,
+    publicId: String
   },
   status: {
     type: String,
