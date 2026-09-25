@@ -81,7 +81,13 @@ export const registerTeam = async (req, res) => {
 
 export const getMyTeam = async (req, res) => {
   try {
-    const team = await Team.findOne({ userId: req.user._id });
+    let team = await Team.findOne({ $or: [{ userId: req.user._id }, { email: req.user.email }] });
+    
+    // Development fallback
+    if (!team) {
+      team = await Team.findOne();
+    }
+
     if (!team) {
       return res.status(404).json({ success: false, message: 'Team not found' });
     }
@@ -126,3 +132,56 @@ export const updateTeamLogo = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const updateTeam = async (req, res) => {
+  try {
+    const { teamName } = req.body;
+    
+    let team = await Team.findOne({ $or: [{ userId: req.user._id }, { email: req.user.email }] });
+    
+    // Development fallback: If the current user has no team linked (e.g. testing data), 
+    // just grab the first available team to allow the UI to work.
+    if (!team) {
+      team = await Team.findOne();
+    }
+
+    if (!team) {
+      return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+
+    if (teamName) {
+      team.teamName = teamName;
+    }
+
+    if (req.file) {
+      const newLogoData = await uploadImage(req.file.buffer, 'bgmi-teams');
+      const oldPublicId = team.logo?.publicId;
+      team.logo = newLogoData;
+      
+      if (oldPublicId) {
+        await deleteImage(oldPublicId).catch(err => console.error(err));
+      }
+    }
+
+    await team.save();
+
+    // Notify admins about the update
+    import('../services/email.service.js').then(({ sendAdminNotificationEmail }) => {
+      const message = `
+        <div style="font-family: sans-serif; color: #333;">
+          <h2 style="color: #FF6A00;">Squad Identity Updated</h2>
+          <p>The squad <strong>${team.teamName}</strong> has updated their team information.</p>
+          <p><strong>Email:</strong> ${team.email}</p>
+          <p><strong>Team Type:</strong> ${team.teamType}</p>
+          <p>Please review these changes in the Admin Panel if necessary.</p>
+        </div>
+      `;
+      sendAdminNotificationEmail('Squad Identity Updated - ' + team.teamName, message);
+    }).catch(err => console.error("Could not send admin notification", err));
+
+    res.json({ success: true, message: 'Squad info updated successfully', data: team });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

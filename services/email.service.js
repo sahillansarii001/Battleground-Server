@@ -130,3 +130,16 @@ export const sendOtpEmail = async (email, otp) => {
   const html = getTemplate('otp-email', { otp });
   await sendEmail({ email, subject: 'Password Reset OTP - BGMI Tournament', html });
 };
+
+export const sendAdminNotificationEmail = async (subject, htmlContent) => {
+  try {
+    const Admin = (await import('../models/Admin.js')).default;
+    const admins = await Admin.find({ isActive: true });
+    for (const admin of admins) {
+      await sendEmail({ email: admin.email, subject, html: htmlContent });
+    }
+  } catch (error) {
+    console.error('Failed to send admin notification:', error);
+  }
+};
+

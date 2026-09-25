@@ -1,10 +1,10 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { notFound, errorHandler } from './middleware/error.middleware.js';
 import { connectDB } from './config/db.js';
-import 'dotenv/config';
 
 import authRoutes from './routes/auth.routes.js';
 import teamRoutes from './routes/team.routes.js';
