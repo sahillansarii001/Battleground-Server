@@ -2,23 +2,37 @@
 <html>
 <head>
     <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #080A0C; color: #FFFFFF; }
-        .wrapper { background-color: #080A0C; padding: 40px 20px; width: 100%; box-sizing: border-box; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #111518; border: 1px solid rgba(255,106,0,0.3); border-top: 4px solid #FF6A00; padding: 40px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px; }
-        .logo { font-size: 24px; font-weight: 900; color: #FFFFFF; text-transform: uppercase; letter-spacing: 4px; margin: 0; }
+        body { margin: 0; padding: 0; font-family: 'Arial', sans-serif; background-color: #080A0C; color: #FFFFFF; -webkit-text-size-adjust: 100%; }
+        .wrapper { background-color: #080A0C; padding: 20px 10px; width: 100%; box-sizing: border-box; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #111518; border: 1px solid rgba(255,106,0,0.3); border-top: 4px solid #FF6A00; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); width: 100%; box-sizing: border-box; }
+        .header { text-align: center; margin-bottom: 25px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 15px; }
+        .logo { font-size: 20px; font-weight: 900; color: #FFFFFF; text-transform: uppercase; letter-spacing: 2px; margin: 0; }
         .logo span { color: #FF6A00; }
-        h1 { color: #FFFFFF; font-size: 20px; text-transform: uppercase; letter-spacing: 2px; margin-top: 0; }
-        p { color: #B8C0C2; font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
+        h1 { color: #FFFFFF; font-size: 18px; text-transform: uppercase; letter-spacing: 1px; margin-top: 0; word-break: break-word; line-height: 1.4; }
+        p { color: #B8C0C2; font-size: 14px; line-height: 1.6; margin-bottom: 15px; }
         .highlight { color: #FF6A00; font-weight: bold; }
-        .data-box { background-color: #080A0C; border: 1px solid rgba(255,255,255,0.1); padding: 20px; margin: 25px 0; border-left: 3px solid #FF6A00; }
+        .data-box { background-color: #080A0C; border: 1px solid rgba(255,255,255,0.1); padding: 15px; margin: 20px 0; border-left: 3px solid #FF6A00; overflow-wrap: break-word; word-wrap: break-word; }
         .data-row { margin-bottom: 15px; font-size: 14px; }
         .data-row:last-child { margin-bottom: 0; }
-        .data-label { color: #888; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; display: block; margin-bottom: 5px; }
-        .data-value { color: #FFFFFF; font-family: 'Courier New', Courier, monospace; font-size: 18px; font-weight: bold; letter-spacing: 1px; }
-        .btn { display: inline-block; background-color: #FF6A00; color: #000000 !important; text-decoration: none; font-weight: bold; text-transform: uppercase; letter-spacing: 2px; padding: 14px 30px; font-size: 14px; margin-top: 10px; margin-bottom: 10px; text-align: center; border-radius: 2px; }
-        .footer { margin-top: 40px; text-align: center; font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px; }
+        .data-label { color: #888; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 5px; }
+        .data-value { color: #FFFFFF; font-family: 'Courier New', Courier, monospace; font-size: 16px; font-weight: bold; letter-spacing: 0.5px; word-break: break-all; }
+        .btn { display: inline-block; background-color: #FF6A00; color: #000000 !important; text-decoration: none; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; padding: 12px 20px; font-size: 13px; margin-top: 10px; margin-bottom: 10px; text-align: center; border-radius: 2px; max-width: 100%; box-sizing: border-box; }
+        .footer { margin-top: 30px; text-align: center; font-size: 9px; color: #666; text-transform: uppercase; letter-spacing: 1px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; }
+        
+        @media only screen and (min-width: 480px) {
+            .wrapper { padding: 40px 20px; }
+            .container { padding: 40px; }
+            .logo { font-size: 24px; letter-spacing: 4px; }
+            h1 { font-size: 20px; letter-spacing: 2px; }
+            p { font-size: 15px; }
+            .data-box { padding: 20px; }
+            .data-label { font-size: 10px; letter-spacing: 2px; }
+            .data-value { font-size: 18px; letter-spacing: 1px; }
+            .btn { padding: 14px 30px; font-size: 14px; letter-spacing: 2px; }
+            .footer { font-size: 10px; margin-top: 40px; padding-top: 20px; }
+        }
     </style>
 </head>
 <body>
@@ -43,7 +57,7 @@
 
         <p>You must change this password immediately upon your first login to secure your squad profile.</p>
 
-        <div style="text-align: center; margin: 30px 0;">
+        <div style="text-align: center; margin: 25px 0;">
             <a href="{{loginUrl}}" class="btn">INITIALIZE LOGIN</a>
         </div>
         
