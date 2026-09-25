@@ -1,17 +1,30 @@
 import User from '../models/User.js';
+import Admin from '../models/Admin.js';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'secret', { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+const generateToken = (id, role) => {
+  return jwt.sign({ id, role }, process.env.JWT_SECRET || 'secret', { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 };
 
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+    let user = await User.findOne({ email });
+    let isAdmin = false;
+
+    if (!user) {
+      user = await Admin.findOne({ email: email.toLowerCase() });
+      if (user) {
+        isAdmin = true;
+      }
+    }
 
     if (user && (await user.matchPassword(password))) {
+      if (isAdmin) {
+        user.lastLogin = Date.now();
+        await user.save();
+      }
       res.json({
         success: true,
         data: {
@@ -19,7 +32,7 @@ export const login = async (req, res) => {
           email: user.email,
           role: user.role,
           mustChangePassword: user.mustChangePassword,
-          token: generateToken(user._id),
+          token: generateToken(user._id, user.role),
         }
       });
     } else {
