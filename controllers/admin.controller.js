@@ -3,6 +3,8 @@ import User from '../models/User.js';
 import Admin from '../models/Admin.js';
 import AuditLog from '../models/AuditLog.js';
 import Match from '../models/Match.js';
+import Settings from '../models/Settings.js';
+import Player from '../models/Player.js';
 import { sendTeamApprovalEmail, sendTeamRejectionEmail, sendPasswordResetEmail } from '../services/email.service.js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
@@ -186,12 +188,18 @@ export const getDashboardStats = async (req, res) => {
   }
 };
 
-import Settings from '../models/Settings.js';
 
 export const getAllTeams = async (req, res) => {
   try {
-    const teams = await Team.find().sort({ createdAt: -1 });
-    res.json({ success: true, data: teams });
+    const teams = await Team.find().sort({ createdAt: -1 }).lean();
+    const players = await Player.find();
+    
+    const teamsWithPlayers = teams.map(team => ({
+      ...team,
+      players: players.filter(p => p.teamId.toString() === team._id.toString())
+    }));
+    
+    res.json({ success: true, data: teamsWithPlayers });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -213,6 +221,7 @@ export const updateSettings = async (req, res) => {
     let settings = await Settings.findOne();
     if (!settings) settings = new Settings();
     if (req.body.communityLink !== undefined) settings.communityLink = req.body.communityLink;
+    if (req.body.pointsSystem !== undefined) settings.pointsSystem = req.body.pointsSystem;
     await settings.save();
     res.json({ success: true, data: settings });
   } catch (error) {

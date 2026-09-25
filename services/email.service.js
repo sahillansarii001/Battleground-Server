@@ -143,3 +143,17 @@ export const sendAdminNotificationEmail = async (subject, htmlContent) => {
   }
 };
 
+export const sendMatchRoomDetailsEmail = async (email, matchName, matchTime, roomId, roomPassword) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; background-color: #111518; color: #ffffff; padding: 20px;">
+      <h2 style="color: #FF6A00; text-transform: uppercase;">Match is LIVE!</h2>
+      <p>Your upcoming match <strong>${matchName}</strong> at ${matchTime} is now LIVE.</p>
+      <div style="background-color: #080a0c; padding: 15px; border-left: 4px solid #FF6A00; margin: 20px 0;">
+        <p style="margin: 0 0 10px 0;"><strong>Room ID:</strong> <span style="font-size: 1.2em; color: #FF6A00;">${roomId}</span></p>
+        <p style="margin: 0;"><strong>Password:</strong> <span style="font-size: 1.2em; color: #FF6A00;">${roomPassword}</span></p>
+      </div>
+      <p>Please join the room immediately. Best of luck!</p>
+    </div>
+  `;
+  await sendEmail({ email, subject: `Room Details: ${matchName}`, html });
+};

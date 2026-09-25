@@ -9,6 +9,10 @@ const scoreSchema = new mongoose.Schema({
   killPoints: { type: Number, default: 0 },
   bonusPoints: { type: Number, default: 0 },
   totalPoints: { type: Number, default: 0 },
+  playerScores: [{
+    playerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' },
+    kills: { type: Number, default: 0 }
+  }],
   status: {
     type: String,
     enum: ['DRAFT', 'VERIFIED', 'PUBLISHED'],

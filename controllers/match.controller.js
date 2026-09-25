@@ -1,6 +1,9 @@
 import Match from '../models/Match.js';
 import Score from '../models/Score.js';
 import MatchParticipant from '../models/MatchParticipant.js';
+import Team from '../models/Team.js';
+import User from '../models/User.js';
+import { sendMatchRoomDetailsEmail } from '../services/email.service.js';
 
 export const createMatch = async (req, res) => {
   try {
@@ -41,10 +44,30 @@ export const getMatchById = async (req, res) => {
 
 export const updateMatchStatus = async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, roomId, roomPassword } = req.body;
     const match = await Match.findById(req.params.id);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
     
+    // Only update room details if provided
+    if (roomId) match.roomId = roomId;
+    if (roomPassword) match.roomPassword = roomPassword;
+    
+    console.log(`[updateMatchStatus] status: ${status}, match.status: ${match.status}, roomId: ${roomId}`);
+    
+    // If we are setting status to LIVE and we have room details, email all users
+    if (status === 'LIVE' && match.status !== 'LIVE' && roomId) {
+      const allUsers = await User.find({});
+      console.log(`[updateMatchStatus] Found ${allUsers.length} users`);
+      for (const user of allUsers) {
+        if (user.email) {
+          console.log(`[updateMatchStatus] Sending email to ${user.email}`);
+          sendMatchRoomDetailsEmail(user.email, match.matchName, match.startTime, roomId, roomPassword)
+            .then(() => console.log(`[updateMatchStatus] Email sent to ${user.email}`))
+            .catch(err => console.error(`[updateMatchStatus] Email error for ${user.email}:`, err));
+        }
+      }
+    }
+
     match.status = status;
     await match.save();
     res.json({ success: true, data: match });
@@ -129,6 +152,7 @@ export const getMatchScores = async (req, res) => {
   try {
     const scores = await Score.find({ matchId: req.params.id })
       .populate('teamId', 'teamName logo')
+      .populate('playerScores.playerId', 'playerName inGameName bgmiId')
       .sort({ totalPoints: -1 });
     res.json({ success: true, data: scores });
   } catch (error) {
