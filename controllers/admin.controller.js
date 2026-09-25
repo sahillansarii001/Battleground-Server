@@ -26,6 +26,8 @@ export const adminLogin = async (req, res) => {
         data: {
           _id: admin._id,
           email: admin.email,
+          name: admin.name,
+          profilePhoto: admin.profilePhoto,
           role: admin.role,
           mustChangePassword: admin.mustChangePassword,
           token: generateToken(admin._id, admin.role),
@@ -34,6 +36,53 @@ export const adminLogin = async (req, res) => {
     } else {
       res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+import { uploadImage, deleteImage } from '../services/cloudinary.service.js';
+
+export const getAdminProfile = async (req, res) => {
+  try {
+    const admin = await Admin.findById(req.user._id).select('-password');
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+    res.json({ success: true, data: admin });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateAdminProfile = async (req, res) => {
+  try {
+    const { name, email } = req.body;
+    const admin = await Admin.findById(req.user._id);
+
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+
+    if (name) admin.name = name;
+    if (email) admin.email = email.toLowerCase();
+
+    if (req.file) {
+      const newPhotoData = await uploadImage(req.file.buffer, 'bgmi-admin');
+      admin.profilePhoto = newPhotoData.url;
+    }
+
+    await admin.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        name: admin.name,
+        email: admin.email,
+        profilePhoto: admin.profilePhoto
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -138,6 +187,15 @@ export const getDashboardStats = async (req, res) => {
 };
 
 import Settings from '../models/Settings.js';
+
+export const getAllTeams = async (req, res) => {
+  try {
+    const teams = await Team.find().sort({ createdAt: -1 });
+    res.json({ success: true, data: teams });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 // Inside admin.controller.js, just before approveTeam:
 export const getSettings = async (req, res) => {
@@ -263,3 +321,85 @@ export const bulkCreateMatches = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const updateTeamDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { teamName, email, teamType, players } = req.body;
+    
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+
+    if (teamName) team.teamName = teamName;
+    if (email) team.email = email;
+    if (teamType) team.teamType = teamType;
+    if (players) team.players = players;
+
+    await team.save();
+
+    // If email is changed, also update the associated User email
+    if (email && team.userId) {
+      const user = await User.findById(team.userId);
+      if (user) {
+        user.email = email;
+        await user.save();
+      }
+    }
+
+    res.json({ success: true, message: 'Team updated successfully', data: team });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteTeam = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+
+    // If team has a user, delete the user too
+    if (team.userId) {
+      await User.findByIdAndDelete(team.userId);
+    }
+
+    await Team.findByIdAndDelete(id);
+
+    res.json({ success: true, message: 'Team deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const forceChangeTeamPassword = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+    
+    const team = await Team.findById(id);
+    if (!team) {
+      return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+
+    if (!team.userId) {
+      return res.status(400).json({ success: false, message: 'Team is not approved yet (no user account)' });
+    }
+
+    const user = await User.findById(team.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+

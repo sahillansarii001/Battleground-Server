@@ -9,6 +9,10 @@ import { connectDB } from './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import teamRoutes from './routes/team.routes.js';
 import adminRoutes from './routes/admin.routes.js';
+import matchRoutes from './routes/match.routes.js';
+import announcementRoutes from './routes/announcement.routes.js';
+import rulebookRoutes from './routes/rulebook.routes.js';
+import leaderboardRoutes from './routes/leaderboard.routes.js';
 
 const app = express();
 
@@ -17,9 +21,16 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan('dev'));
 
+import publicRoutes from './routes/public.routes.js';
+
+app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/matches', matchRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/rules', rulebookRoutes);
+app.use('/api/leaderboard', leaderboardRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({

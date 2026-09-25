@@ -15,6 +15,13 @@ const matchSchema = new mongoose.Schema({
     default: 'UPCOMING',
   },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  resultStatus: {
+    type: String,
+    enum: ['PENDING', 'DRAFT', 'VERIFIED', 'PUBLISHED'],
+    default: 'PENDING',
+  },
+  winner: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
+  mvp: { type: mongoose.Schema.Types.ObjectId, ref: 'Player' }
 }, { timestamps: true });
 
 export default mongoose.model('Match', matchSchema);

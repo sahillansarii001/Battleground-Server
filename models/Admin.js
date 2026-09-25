@@ -3,6 +3,14 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 
 const adminSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    default: 'Global Admin'
+  },
+  profilePhoto: {
+    type: String,
+    default: ''
+  },
   email: {
     type: String,
     required: true,
