@@ -118,3 +118,22 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const changePassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    let user = await User.findById(req.user._id || req.user.id);
+    if (!user) {
+      user = await Admin.findById(req.user._id || req.user.id);
+    }
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    user.password = password;
+    user.mustChangePassword = false;
+    await user.save();
+    res.json({ success: true, message: 'Password changed successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
