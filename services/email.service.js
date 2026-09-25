@@ -89,7 +89,8 @@ export const sendTeamApprovalEmail = async (email, temporaryPassword, teamName, 
     teamName, 
     temporaryPassword, 
     loginUrl: process.env.CLIENT_URL || 'http://localhost:3000',
-    communityLink: communityLink || 'https://t.me/bgmi_tournament'
+    communityLink: communityLink || 'https://t.me/bgmi_tournament',
+    email
   });
   await sendEmail({ email, subject: 'Squad Deployment Authorized - BGMI Tournament', html });
 };
@@ -123,4 +124,9 @@ export const sendPlayerChangeApprovalEmail = async (email, playerName) => {
 export const sendPlayerChangeRejectionEmail = async (email, playerName, reason) => {
   const html = getTemplate('player-change', { status: 'Rejected', playerName, reason: reason || 'Not specified' });
   await sendEmail({ email, subject: 'Player Change Rejected', html });
+};
+
+export const sendOtpEmail = async (email, otp) => {
+  const html = getTemplate('otp-email', { otp });
+  await sendEmail({ email, subject: 'Password Reset OTP - BGMI Tournament', html });
 };
