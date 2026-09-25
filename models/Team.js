@@ -8,7 +8,7 @@ const teamSchema = new mongoose.Schema({
   },
   teamType: {
     type: String,
-    enum: ['SOLO', 'DUO', 'SQUAD'],
+    enum: ['SOLO', 'DUO', 'TRIO', 'SQUAD'],
     required: true,
   },
   email: {
