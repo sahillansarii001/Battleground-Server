@@ -12,7 +12,7 @@ const otpSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 600, // The document will be automatically deleted after 10 minutes
+    expires: 300, // The document will be automatically deleted after 5 minutes
   },
 });
 

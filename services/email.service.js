@@ -126,9 +126,9 @@ export const sendPlayerChangeRejectionEmail = async (email, playerName, reason) 
   await sendEmail({ email, subject: 'Player Change Rejected', html });
 };
 
-export const sendOtpEmail = async (email, otp) => {
+export const sendOtpEmail = async (email, otp, subject = 'Password Reset OTP - BGMI Tournament') => {
   const html = getTemplate('otp-email', { otp });
-  await sendEmail({ email, subject: 'Password Reset OTP - BGMI Tournament', html });
+  await sendEmail({ email, subject, html });
 };
 
 export const sendAdminNotificationEmail = async (subject, htmlContent) => {

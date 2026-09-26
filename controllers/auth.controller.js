@@ -74,6 +74,29 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
+export const sendRegistrationOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ success: false, message: 'User already exists with this email' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    await Otp.deleteMany({ email }); // clear old OTPs
+    await Otp.create({ email, otp });
+
+    // Assuming we can reuse sendOtpEmail or create a new one. Using the same for now, 
+    // it says "Password Reset OTP" in the subject inside sendOtpEmail, we can update it to be generic if needed.
+    await sendOtpEmail(email, otp, 'Registration OTP - BGMI Tournament');
+
+    res.json({ success: true, message: 'OTP sent to email' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
