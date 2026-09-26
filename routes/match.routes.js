@@ -7,7 +7,9 @@ import {
   submitMatchResults,
   verifyMatchResults,
   publishMatchResults,
-  getMatchScores
+  getMatchScores,
+  updateMatch,
+  deleteMatch
 } from '../controllers/match.controller.js';
 import { protect, admin } from '../middleware/auth.middleware.js';
 
@@ -18,7 +20,9 @@ router.route('/')
   .post(protect, admin, createMatch);
 
 router.route('/:id')
-  .get(getMatchById);
+  .get(getMatchById)
+  .put(protect, admin, updateMatch)
+  .delete(protect, admin, deleteMatch);
 
 router.put('/:id/status', protect, admin, updateMatchStatus);
 

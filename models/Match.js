@@ -6,7 +6,7 @@ const matchSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   startTime: { type: String, required: true },
   map: { type: String, required: true },
-  mode: { type: String, enum: ['SOLO', 'DUO', 'SQUAD'], required: true },
+  mode: { type: String, enum: ['SOLO', 'DUO', 'TRIO', 'SQUAD'], required: true },
   roomId: { type: String },
   roomPassword: { type: String },
   status: {

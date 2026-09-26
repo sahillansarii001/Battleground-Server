@@ -3,16 +3,122 @@ import Score from '../models/Score.js';
 import MatchParticipant from '../models/MatchParticipant.js';
 import Team from '../models/Team.js';
 import User from '../models/User.js';
-import { sendMatchRoomDetailsEmail } from '../services/email.service.js';
+import { sendMatchRoomDetailsEmail, sendMatchScheduleEmail } from '../services/email.service.js';
 
 export const createMatch = async (req, res) => {
   try {
+    const { matchNumber, matchName, date } = req.body;
+    
+    // Check if match number or name already exists on the same date
+    const matchDate = new Date(date);
+    // Since dates might have time differences if not set at exactly midnight,
+    // we should match the same day. Or if the frontend always sends YYYY-MM-DD,
+    // new Date(date) will be midnight UTC.
+    const startOfDay = new Date(matchDate.setUTCHours(0,0,0,0));
+    const endOfDay = new Date(matchDate.setUTCHours(23,59,59,999));
+
+    const existingMatch = await Match.findOne({
+      date: { $gte: startOfDay, $lte: endOfDay },
+      $or: [{ matchNumber }, { matchName }]
+    });
+    
+    if (existingMatch) {
+      if (existingMatch.matchNumber === Number(matchNumber)) {
+        return res.status(400).json({ success: false, message: 'A match with this Match Number already exists on this date' });
+      }
+      if (existingMatch.matchName === matchName) {
+        return res.status(400).json({ success: false, message: 'A match with this Match Name already exists on this date' });
+      }
+    }
+
     const match = new Match({
       ...req.body,
       createdBy: req.user._id || req.user.id
     });
     await match.save();
+    
+    // Email all users about the new match
+    const allUsers = await User.find({});
+    for (const user of allUsers) {
+      if (user.email) {
+        await sendMatchScheduleEmail(
+          user.email,
+          match.matchName,
+          match.date,
+          match.startTime,
+          match.map,
+          match.mode,
+          false
+        );
+      }
+    }
+    
     res.status(201).json({ success: true, data: match });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const updateMatch = async (req, res) => {
+  try {
+    const { matchNumber, matchName, date } = req.body;
+    
+    // Check if match number or name already exists (excluding current match) on the same date
+    const matchDate = new Date(date);
+    const startOfDay = new Date(matchDate.setUTCHours(0,0,0,0));
+    const endOfDay = new Date(matchDate.setUTCHours(23,59,59,999));
+
+    const existingMatch = await Match.findOne({
+      _id: { $ne: req.params.id },
+      date: { $gte: startOfDay, $lte: endOfDay },
+      $or: [{ matchNumber }, { matchName }]
+    });
+    
+    if (existingMatch) {
+      if (existingMatch.matchNumber === Number(matchNumber)) {
+        return res.status(400).json({ success: false, message: 'A match with this Match Number already exists on this date' });
+      }
+      if (existingMatch.matchName === matchName) {
+        return res.status(400).json({ success: false, message: 'A match with this Match Name already exists on this date' });
+      }
+    }
+
+    const match = await Match.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+
+    // Email all users about the updated match
+    const allUsers = await User.find({});
+    for (const user of allUsers) {
+      if (user.email) {
+        await sendMatchScheduleEmail(
+          user.email,
+          match.matchName,
+          match.date,
+          match.startTime,
+          match.map,
+          match.mode,
+          true
+        );
+      }
+    }
+
+    res.json({ success: true, data: match });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteMatch = async (req, res) => {
+  try {
+    const match = await Match.findById(req.params.id);
+    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+    
+    await Match.deleteOne({ _id: req.params.id });
+    res.json({ success: true, message: 'Match deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

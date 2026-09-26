@@ -19,6 +19,10 @@ const settingsSchema = new mongoose.Schema({
         "11": 0, "12": 0, "13": 0, "14": 0, "15": 0, "16": 0
       }
     }
+  },
+  maps: {
+    type: [String],
+    default: ['ERANGEL', 'MIRAMAR', 'SANHOK', 'VIKENDI']
   }
 }, { timestamps: true });
 
