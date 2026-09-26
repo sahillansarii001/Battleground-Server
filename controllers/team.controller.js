@@ -65,7 +65,7 @@ export const registerTeam = async (req, res) => {
       playerName: p.playerName,
       inGameName: p.inGameName,
       bgmiId: p.bgmiId,
-      role: teamType === 'SQUAD' ? p.role : null,
+      role: p.role,
     }));
     await Player.insertMany(playerDocs);
 
