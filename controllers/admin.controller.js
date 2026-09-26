@@ -348,6 +348,11 @@ export const updateTeamDetails = async (req, res) => {
     if (teamType) team.teamType = teamType;
     
     if (players) {
+      for (const p of players) {
+        if (!/^\d{10}$/.test(p.bgmiId)) {
+          return res.status(400).json({ success: false, message: `BGMI ID for ${p.inGameName || 'a player'} must be exactly 10 digits` });
+        }
+      }
       await Player.deleteMany({ teamId: id });
       const playersToInsert = players.map(p => ({
         ...p,
