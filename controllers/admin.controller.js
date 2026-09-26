@@ -346,7 +346,17 @@ export const updateTeamDetails = async (req, res) => {
     if (teamName) team.teamName = teamName;
     if (email) team.email = email;
     if (teamType) team.teamType = teamType;
-    if (players) team.players = players;
+    
+    if (players) {
+      await Player.deleteMany({ teamId: id });
+      const playersToInsert = players.map(p => ({
+        ...p,
+        teamId: id
+      }));
+      if (playersToInsert.length > 0) {
+        await Player.insertMany(playersToInsert);
+      }
+    }
 
     await team.save();
 

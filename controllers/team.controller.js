@@ -1,5 +1,6 @@
 import Team from '../models/Team.js';
 import Player from '../models/Player.js';
+import User from '../models/User.js';
 import { uploadImage, deleteImage } from '../services/cloudinary.service.js';
 
 export const registerTeam = async (req, res) => {
@@ -135,7 +136,7 @@ export const updateTeamLogo = async (req, res) => {
 
 export const updateTeam = async (req, res) => {
   try {
-    const { teamName } = req.body;
+    const { teamName, email } = req.body;
     
     let team = await Team.findOne({ $or: [{ userId: req.user._id }, { email: req.user.email }] });
     
@@ -151,6 +152,20 @@ export const updateTeam = async (req, res) => {
 
     if (teamName) {
       team.teamName = teamName;
+    }
+
+    if (email && email !== team.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser && existingUser._id.toString() !== team.userId?.toString()) {
+        return res.status(400).json({ success: false, message: 'Email already exists' });
+      }
+      team.email = email;
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.email = email;
+        await user.save();
+      }
+      team.userId = req.user._id; // Ensure link is established
     }
 
     if (req.file) {

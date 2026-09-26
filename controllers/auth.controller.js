@@ -121,7 +121,7 @@ export const resetPassword = async (req, res) => {
 
 export const changePassword = async (req, res) => {
   try {
-    const { password } = req.body;
+    const { currentPassword, newPassword } = req.body;
     let user = await User.findById(req.user._id || req.user.id);
     if (!user) {
       user = await Admin.findById(req.user._id || req.user.id);
@@ -129,10 +129,16 @@ export const changePassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
-    user.password = password;
+    
+    // Verify current password
+    if (!(await user.matchPassword(currentPassword))) {
+      return res.status(400).json({ success: false, message: 'CURRENT ACCESS CODE IS INCORRECT.' });
+    }
+    
+    user.password = newPassword;
     user.mustChangePassword = false;
     await user.save();
-    res.json({ success: true, message: 'Password changed successfully' });
+    res.json({ success: true, message: 'ACCESS CODE UPDATED SUCCESSFULLY.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
