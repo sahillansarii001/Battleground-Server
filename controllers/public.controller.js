@@ -13,6 +13,8 @@ export const getPublicStats = async (req, res) => {
       activePlayers += (squad.players ? squad.players.length : 0);
     });
 
+    const totalMatches = await Match.countDocuments();
+
     const settings = await Settings.findOne();
     const prizePool = settings?.prizePool || '50K';
 
