@@ -157,22 +157,15 @@ export const sendMatchRoomDetailsEmail = async (email, matchName, matchTime, roo
   `;
   await sendEmail({ email, subject: `Room Details: ${matchName}`, html });
 };
-export const sendMatchScheduleEmail = async (email, matchName, date, time, map, mode, isUpdate = false) => {
-  const formattedDate = new Date(date).toLocaleDateString();
-  const title = isUpdate ? 'Match Schedule Updated' : 'New Match Scheduled';
+
+export const sendMatchScheduleEmail = async (email, matchTitle, scheduledTime, groupName) => {
   const html = `
     <div style="font-family: Arial, sans-serif; background-color: #111518; color: #ffffff; padding: 20px;">
-      <h2 style="color: #FF6A00; text-transform: uppercase;">${title}</h2>
-      <p>A match has been ${isUpdate ? 'updated' : 'scheduled'} for your team.</p>
-      <div style="background-color: #080a0c; padding: 15px; border-left: 4px solid #FF6A00; margin: 20px 0;">
-        <p style="margin: 0 0 10px 0;"><strong>Match:</strong> <span style="color: #FF6A00;">${matchName}</span></p>
-        <p style="margin: 0 0 10px 0;"><strong>Date:</strong> <span style="color: #FF6A00;">${formattedDate}</span></p>
-        <p style="margin: 0 0 10px 0;"><strong>Time:</strong> <span style="color: #FF6A00;">${time}</span></p>
-        <p style="margin: 0 0 10px 0;"><strong>Map:</strong> <span style="color: #FF6A00;">${map}</span></p>
-        <p style="margin: 0;"><strong>Mode:</strong> <span style="color: #FF6A00;">${mode}</span></p>
-      </div>
-      <p>Prepare your squad. Room ID and password will be sent before the match starts.</p>
+      <h2 style="color: #FF6A00; text-transform: uppercase;">Match Scheduled</h2>
+      <p>A new match <strong>${matchTitle}</strong> has been scheduled for your squad in Group ${groupName}.</p>
+      <p><strong>Scheduled Time:</strong> ${new Date(scheduledTime).toLocaleString()}</p>
+      <p>Please be online 15 minutes before the start time to receive the Room ID and Password.</p>
     </div>
   `;
-  await sendEmail({ email, subject: `${title}: ${matchName}`, html });
+  await sendEmail({ email, subject: `Match Scheduled: ${matchTitle}`, html });
 };
