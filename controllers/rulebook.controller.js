@@ -51,3 +51,32 @@ export const getCurrentRulebook = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const updateRulebook = async (req, res) => {
+  try {
+    const { title, content, version } = req.body;
+    const rulebook = await Rulebook.findById(req.params.id);
+    if (!rulebook) return res.status(404).json({ success: false, message: 'Rulebook not found' });
+
+    rulebook.title = title || rulebook.title;
+    rulebook.content = content || rulebook.content;
+    rulebook.version = version || rulebook.version;
+    await rulebook.save();
+
+    res.json({ success: true, data: rulebook });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deleteRulebook = async (req, res) => {
+  try {
+    const rulebook = await Rulebook.findById(req.params.id);
+    if (!rulebook) return res.status(404).json({ success: false, message: 'Rulebook not found' });
+
+    await rulebook.deleteOne();
+    res.json({ success: true, message: 'Rulebook deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

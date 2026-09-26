@@ -3,7 +3,9 @@ import {
   uploadRulebook, 
   getRulebooks, 
   publishRulebook, 
-  getCurrentRulebook 
+  getCurrentRulebook,
+  updateRulebook,
+  deleteRulebook
 } from '../controllers/rulebook.controller.js';
 import { protect, admin } from '../middleware/auth.middleware.js';
 
@@ -16,5 +18,9 @@ router.route('/')
   .post(protect, admin, uploadRulebook);
 
 router.put('/:id/publish', protect, admin, publishRulebook);
+
+router.route('/:id')
+  .put(protect, admin, updateRulebook)
+  .delete(protect, admin, deleteRulebook);
 
 export default router;
