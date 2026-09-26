@@ -5,6 +5,10 @@ const settingsSchema = new mongoose.Schema({
     type: String,
     default: 'https://discord.gg/example',
   },
+  prizePool: {
+    type: String,
+    default: '50K',
+  },
   pointsSystem: {
     perKill: { type: Number, default: 1 },
     placementPoints: {

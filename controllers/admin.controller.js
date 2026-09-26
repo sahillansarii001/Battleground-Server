@@ -221,6 +221,7 @@ export const updateSettings = async (req, res) => {
     let settings = await Settings.findOne();
     if (!settings) settings = new Settings();
     if (req.body.communityLink !== undefined) settings.communityLink = req.body.communityLink;
+    if (req.body.prizePool !== undefined) settings.prizePool = req.body.prizePool;
     if (req.body.pointsSystem !== undefined) settings.pointsSystem = req.body.pointsSystem;
     await settings.save();
     res.json({ success: true, data: settings });
