@@ -35,3 +35,21 @@ export const admin = (req, res, next) => {
     res.status(403).json({ success: false, message: 'Not authorized as an admin' });
   }
 };
+
+export const optionalAuth = async (req, res, next) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+      
+      if (decoded.role === 'ADMIN') {
+        req.user = await Admin.findById(decoded.id).select('-password');
+      } else {
+        req.user = await User.findById(decoded.id).select('-password');
+      }
+    } catch (error) {
+      // Ignore token errors for optional auth
+    }
+  }
+  next();
+};
