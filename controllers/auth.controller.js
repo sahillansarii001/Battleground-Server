@@ -1,5 +1,6 @@
 import User from '../models/User.js';
 import Admin from '../models/Admin.js';
+import Team from '../models/Team.js';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import Otp from '../models/Otp.js';
@@ -82,14 +83,20 @@ export const sendRegistrationOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'User already exists with this email' });
     }
 
+    let team = await Team.findOne({ email });
+    if (team) {
+      return res.status(400).json({ success: false, message: 'Team already registered with this email' });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
     await Otp.deleteMany({ email }); // clear old OTPs
     await Otp.create({ email, otp });
 
-    // Assuming we can reuse sendOtpEmail or create a new one. Using the same for now, 
-    // it says "Password Reset OTP" in the subject inside sendOtpEmail, we can update it to be generic if needed.
-    await sendOtpEmail(email, otp, 'Registration OTP - BGMI Tournament');
+    // Send email in background to prevent hanging the API response
+    sendOtpEmail(email, otp, 'Registration OTP - BGMI Tournament').catch(err => {
+      console.error('Background email failed:', err);
+    });
 
     res.json({ success: true, message: 'OTP sent to email' });
   } catch (error) {
