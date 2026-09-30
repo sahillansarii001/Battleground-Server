@@ -47,3 +47,15 @@ export const publishAnnouncement = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+export const deleteAnnouncement = async (req, res) => {
+  try {
+    const announcement = await Announcement.findById(req.params.id);
+    if (!announcement) return res.status(404).json({ success: false, message: 'Announcement not found' });
+
+    await announcement.deleteOne();
+    res.json({ success: true, message: 'Announcement deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
