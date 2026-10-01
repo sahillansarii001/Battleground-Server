@@ -1,4 +1,6 @@
 import Announcement from '../models/Announcement.js';
+import User from '../models/User.js';
+import { sendAnnouncementEmail } from '../services/email.service.js';
 
 export const createAnnouncement = async (req, res) => {
   try {
@@ -41,6 +43,12 @@ export const publishAnnouncement = async (req, res) => {
     await announcement.save();
 
     // Here we can trigger email sending to all approved teams
+    const users = await User.find({ role: 'TEAM_USER' });
+    
+    // Send asynchronously in the background so it doesn't block the response
+    Promise.all(
+      users.map(user => sendAnnouncementEmail(user.email, announcement.content))
+    ).catch(err => console.error('Failed to send some announcement emails:', err));
     
     res.json({ success: true, data: announcement });
   } catch (error) {
