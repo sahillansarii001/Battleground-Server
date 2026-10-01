@@ -158,14 +158,23 @@ export const sendMatchRoomDetailsEmail = async (email, matchName, matchTime, roo
   await sendEmail({ email, subject: `Room Details: ${matchName}`, html });
 };
 
-export const sendMatchScheduleEmail = async (email, matchTitle, scheduledTime, groupName) => {
+export const sendMatchScheduleEmail = async (email, matchTitle, scheduledDate, scheduledTime, map, mode, isUpdate = false) => {
+  const dateObj = new Date(scheduledDate);
+  const formattedDate = dateObj.toLocaleDateString();
+  const title = isUpdate ? 'Match Updated' : 'Match Scheduled';
+  
   const html = `
     <div style="font-family: Arial, sans-serif; background-color: #111518; color: #ffffff; padding: 20px;">
-      <h2 style="color: #FF6A00; text-transform: uppercase;">Match Scheduled</h2>
-      <p>A new match <strong>${matchTitle}</strong> has been scheduled for your squad in Group ${groupName}.</p>
-      <p><strong>Scheduled Time:</strong> ${new Date(scheduledTime).toLocaleString()}</p>
+      <h2 style="color: #FF6A00; text-transform: uppercase;">${title}</h2>
+      <p>The match <strong>${matchTitle}</strong> has been ${isUpdate ? 'updated' : 'scheduled'} for your squad.</p>
+      <div style="background-color: #080a0c; padding: 15px; border-left: 4px solid #FF6A00; margin: 20px 0;">
+        <p style="margin: 0 0 10px 0;"><strong>Date:</strong> ${formattedDate}</p>
+        <p style="margin: 0 0 10px 0;"><strong>Time:</strong> ${scheduledTime}</p>
+        <p style="margin: 0 0 10px 0;"><strong>Map:</strong> ${map}</p>
+        <p style="margin: 0;"><strong>Mode:</strong> ${mode}</p>
+      </div>
       <p>Please be online 15 minutes before the start time to receive the Room ID and Password.</p>
     </div>
   `;
-  await sendEmail({ email, subject: `Match Scheduled: ${matchTitle}`, html });
+  await sendEmail({ email, subject: `${title}: ${matchTitle}`, html });
 };
