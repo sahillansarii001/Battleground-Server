@@ -11,12 +11,18 @@ const loginLimiter = rateLimit({
   message: { success: false, message: 'Too many login attempts, please try again after 15 minutes' }
 });
 
+const otpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per windowMs for emails
+  message: { success: false, message: 'Too many OTP requests, please try again after 15 minutes' }
+});
+
 router.post('/login', loginLimiter, login);
 router.post('/logout', protect, logout);
-router.post('/forgot-password', forgotPassword);
+router.post('/forgot-password', otpLimiter, forgotPassword);
 router.post('/verify-otp', verifyOtp);
 router.post('/reset-password', resetPassword);
-router.post('/send-registration-otp', sendRegistrationOtp);
+router.post('/send-registration-otp', otpLimiter, sendRegistrationOtp);
 router.put('/change-password', protect, changePassword);
 
 export default router;

@@ -15,6 +15,7 @@ import rulebookRoutes from './routes/rulebook.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
 
 const app = express();
+app.set('trust proxy', 1);
 
 app.use(express.json());
 app.use(cors());
