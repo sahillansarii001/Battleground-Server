@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 export const connectDB = async () => {
   try {
     const conn = await mongoose.connect(process.env.MONGO_URI, {
-      dbName: 'bgmi_tournament'
+      dbName: 'bgmi_portal'
     });
     console.log(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
