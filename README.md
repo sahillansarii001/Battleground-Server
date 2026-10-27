@@ -18,7 +18,6 @@ This is the backend for the BGMI Tournament Management Platform.
 2. Copy `.env.example` to `.env` and configure it.
 3. Start MongoDB.
 4. `npm run dev` to start the server.
-5. `npm run create:admin` to create the initial admin account interactively.
 
 ## Email Configuration
 
@@ -56,12 +55,6 @@ Google OAuth tokens expire after 7 days if the Google Cloud project is in "Testi
 3. Add `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` to your `.env` file.
 4. Images (like Team Logos) are automatically uploaded and stored in Cloudinary via the backend, and not stored permanently on the local filesystem.
 
-## Admin Account Creation
-Use the script to securely create an admin account directly in the database:
-```sh
-npm run create:admin
-```
-This prompts for email and password. Admins can log in, manage teams, change their password, and request a password reset if forgotten. Admin passwords are not stored in environment variables.
 
 ## Team Logo Upload Flow
 1. Frontend sends a `multipart/form-data` request with the logo file and team data to `/api/team/register` or the logo update endpoint.
@@ -80,4 +73,3 @@ Emails are sent via the `src/services/email.service.js` which uses Google OAuth 
 - `src/routes`: Express routes
 - `src/middleware`: Custom middleware
 - `src/templates/email`: Email HTML templates
-- `scripts`: Utilities like `createAdmin.js`
