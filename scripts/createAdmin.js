@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import readline from 'readline';
-import Admin from '../src/models/Admin.js';
+import Admin from '../models/Admin.js';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -23,8 +23,8 @@ const createAdmin = async () => {
       process.exit(1);
     }
 
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('Connected to MongoDB');
+    await mongoose.connect(process.env.MONGO_URI, { dbName: 'bgmi_portal' });
+    console.log('Connected to MongoDB (bgmi_portal)');
 
     const email = await question('Admin Email: ');
     

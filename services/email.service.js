@@ -11,62 +11,127 @@ const __dirname = path.dirname(__filename);
 const OAuth2 = google.auth.OAuth2;
 
 const createTransporter = async () => {
-  try {
-    const oauth2Client = new OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
-    );
+  // Option 1: Gmail App Password (recommended, stable, does not expire every 7 days)
+  const appPassword = process.env.EMAIL_PASS || process.env.GOOGLE_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD;
+  const emailUser = process.env.EMAIL_USER || process.env.GOOGLE_EMAIL;
 
-    oauth2Client.setCredentials({
-      refresh_token: process.env.GOOGLE_REFRESH_TOKEN
-    });
-
-    const accessToken = await new Promise((resolve, reject) => {
-      oauth2Client.getAccessToken((err, token) => {
-        if (err) {
-          console.error('Failed to create access token', err);
-          reject(err);
-        }
-        resolve(token);
-      });
-    });
-
-    const transporter = nodemailer.createTransport({
+  if (appPassword && emailUser) {
+    return nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        type: 'OAuth2',
-        user: process.env.GOOGLE_EMAIL,
-        accessToken,
-        clientId: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        refreshToken: process.env.GOOGLE_REFRESH_TOKEN
+        user: emailUser,
+        pass: appPassword.replace(/\s+/g, '') // remove any spaces if copied from Google UI
       }
     });
-
-    return transporter;
-  } catch (error) {
-    console.error('Error in creating email transporter', error);
-    return null;
   }
+
+  // Option 2: Generic SMTP provider (e.g. Brevo, SendGrid, Mailgun)
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
+    return nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      }
+    });
+  }
+
+  // Option 3: Google OAuth2
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN) {
+    try {
+      const oauth2Client = new OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI || 'https://developers.google.com/oauthplayground'
+      );
+
+      oauth2Client.setCredentials({
+        refresh_token: process.env.GOOGLE_REFRESH_TOKEN
+      });
+
+      const accessToken = await new Promise((resolve, reject) => {
+        oauth2Client.getAccessToken((err, token) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(token);
+          }
+        });
+      });
+
+      const transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          type: 'OAuth2',
+          user: process.env.GOOGLE_EMAIL,
+          accessToken,
+          clientId: process.env.GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+          refreshToken: process.env.GOOGLE_REFRESH_TOKEN
+        }
+      });
+
+      return transporter;
+    } catch (error) {
+      if (
+        error?.message?.includes('invalid_grant') ||
+        error?.response?.data?.error === 'invalid_grant' ||
+        error?.code === 400
+      ) {
+        console.error(
+          '\n============================================================\n' +
+          '❌ [EMAIL ERROR]: Google OAuth2 refresh token is expired or invalid (invalid_grant).\n' +
+          '   In Google Cloud Console ("Testing" mode), OAuth refresh tokens expire after 7 days.\n\n' +
+          '   Recommended Solution (Gmail App Password):\n' +
+          '   1. Go to https://myaccount.google.com/apppasswords\n' +
+          '   2. Generate a 16-character App Password (requires 2-Step Verification enabled)\n' +
+          '   3. Add `EMAIL_PASS=your_16_char_password` to Server/.env\n\n' +
+          '   Alternative Solution (OAuth2):\n' +
+          '   1. Go to https://developers.google.com/oauthplayground\n' +
+          '   2. Exchange authorization code for a new refresh token and update GOOGLE_REFRESH_TOKEN in .env\n' +
+          '============================================================\n'
+        );
+      } else {
+        console.error('Error in creating Google OAuth2 email transporter:', error);
+      }
+      return null;
+    }
+  }
+
+  console.error(
+    '\n============================================================\n' +
+    '❌ [EMAIL ERROR]: No valid email configuration found.\n' +
+    '   Please configure EMAIL_PASS (Gmail App Password) or GOOGLE_REFRESH_TOKEN in Server/.env\n' +
+    '============================================================\n'
+  );
+  return null;
 };
 
 const sendEmail = async (options) => {
-  try {
-    const emailTransporter = await createTransporter();
-    if (!emailTransporter) {
-      throw new Error('Could not create transporter');
-    }
+  const emailTransporter = await createTransporter();
+  if (!emailTransporter) {
+    const errorMsg = 'Could not create email transporter. Check your email credentials in .env (invalid_grant or missing EMAIL_PASS).';
+    console.error(`Email sending failed: ${errorMsg}`);
+    throw new Error(errorMsg);
+  }
 
-    const mailOptions = {
-      from: `BGMI Tournament <${process.env.GOOGLE_EMAIL}>`,
-      to: options.email,
-      subject: options.subject,
-      html: options.html,
-    };
-    await emailTransporter.sendMail(mailOptions);
+  const senderEmail = process.env.GOOGLE_EMAIL || process.env.EMAIL_USER || 'no-reply@bgmitournament.com';
+  const mailOptions = {
+    from: `BGMI Tournament <${senderEmail}>`,
+    to: options.email,
+    subject: options.subject,
+    html: options.html,
+  };
+
+  try {
+    const info = await emailTransporter.sendMail(mailOptions);
+    console.log(`[Email Service] Email sent successfully to ${options.email} (Message ID: ${info?.messageId || 'OK'})`);
+    return info;
   } catch (error) {
-    console.error('Email sending failed:', error);
+    console.error(`[Email Service] Failed sending email to ${options.email}:`, error.message);
+    throw error;
   }
 };
 

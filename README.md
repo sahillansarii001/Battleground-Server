@@ -20,12 +20,26 @@ This is the backend for the BGMI Tournament Management Platform.
 4. `npm run dev` to start the server.
 5. `npm run create:admin` to create the initial admin account interactively.
 
-## Google Cloud Console Setup (Gmail API)
+## Email Configuration
 
+The server supports two authentication methods for sending emails:
+
+### Option 1: Gmail App Password (Recommended & Permanent)
+Google OAuth tokens expire after 7 days if the Google Cloud project is in "Testing" mode. Using a Gmail App Password avoids expiration entirely:
+1. Enable **2-Step Verification** on your Google Account: [myaccount.google.com/security](https://myaccount.google.com/security).
+2. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+3. Create an App Password (name it `BGMI Portal`).
+4. Copy the generated 16-character password and add to `Server/.env`:
+   ```env
+   GOOGLE_EMAIL=your_email@gmail.com
+   EMAIL_PASS=your_16_character_app_password
+   ```
+
+### Option 2: Google Cloud Console (Gmail API OAuth 2.0)
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
 2. Create a new project or select an existing one.
 3. Navigate to **APIs & Services > Library** and enable the **Gmail API**.
-4. Go to **APIs & Services > OAuth consent screen** and configure it.
+4. Go to **APIs & Services > OAuth consent screen** and configure it. Note: In "Testing" mode, refresh tokens expire every 7 days.
 5. Go to **APIs & Services > Credentials**.
 6. Create **OAuth client ID** (Web application).
 7. Add `https://developers.google.com/oauthplayground` as a **Redirect URI**.
@@ -33,7 +47,7 @@ This is the backend for the BGMI Tournament Management Platform.
 9. In step 1, select the **Gmail API v1** and authorize the scopes (e.g., `https://mail.google.com/`).
 10. Click the settings gear icon, check "Use your own OAuth credentials", and input your Client ID and Secret.
 11. In step 2, exchange the authorization code for tokens to get the **Refresh Token**.
-12. Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_REFRESH_TOKEN`, and `GOOGLE_EMAIL` to your `.env` file. (Note: These are application credentials, do not commit them to Git).
+12. Add `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `GOOGLE_REFRESH_TOKEN`, and `GOOGLE_EMAIL` to your `.env` file.
 
 ## Cloudinary Setup (Image Uploads)
 

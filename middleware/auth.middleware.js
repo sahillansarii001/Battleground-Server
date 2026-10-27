@@ -12,8 +12,14 @@ export const protect = async (req, res, next) => {
       
       if (decoded.role === 'ADMIN') {
         req.user = await Admin.findById(decoded.id).select('-password');
+        if (!req.user) {
+          req.user = await User.findById(decoded.id).select('-password');
+        }
       } else {
         req.user = await User.findById(decoded.id).select('-password');
+        if (!req.user) {
+          req.user = await Admin.findById(decoded.id).select('-password');
+        }
       }
 
       if (!req.user) {
@@ -44,8 +50,14 @@ export const optionalAuth = async (req, res, next) => {
       
       if (decoded.role === 'ADMIN') {
         req.user = await Admin.findById(decoded.id).select('-password');
+        if (!req.user) {
+          req.user = await User.findById(decoded.id).select('-password');
+        }
       } else {
         req.user = await User.findById(decoded.id).select('-password');
+        if (!req.user) {
+          req.user = await Admin.findById(decoded.id).select('-password');
+        }
       }
     } catch (error) {
       // Ignore token errors for optional auth

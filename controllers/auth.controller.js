@@ -13,18 +13,23 @@ const generateToken = (id, role) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    let user = await User.findOne({ email });
+    const cleanEmail = email ? email.toLowerCase().trim() : '';
+
+    // Check Admin collection first to ensure proper Admin model binding
+    let user = await Admin.findOne({ email: cleanEmail });
     let isAdmin = false;
 
-    if (!user) {
-      user = await Admin.findOne({ email: email.toLowerCase() });
-      if (user) {
+    if (user) {
+      isAdmin = true;
+    } else {
+      user = await User.findOne({ email: cleanEmail });
+      if (user && user.role === 'ADMIN') {
         isAdmin = true;
       }
     }
 
     if (user && (await user.matchPassword(password))) {
-      if (isAdmin) {
+      if (isAdmin && user.lastLogin !== undefined) {
         user.lastLogin = Date.now();
         await user.save();
       }
@@ -33,6 +38,7 @@ export const login = async (req, res) => {
         data: {
           _id: user._id,
           email: user.email,
+          name: user.name || (isAdmin ? 'Admin' : user.email.split('@')[0]),
           role: user.role,
           mustChangePassword: user.mustChangePassword,
           token: generateToken(user._id, user.role),
@@ -93,14 +99,13 @@ export const sendRegistrationOtp = async (req, res) => {
     await Otp.deleteMany({ email }); // clear old OTPs
     await Otp.create({ email, otp });
 
-    // Send email in background to prevent hanging the API response
-    sendOtpEmail(email, otp, 'Registration OTP - BGMI Tournament').catch(err => {
-      console.error('Background email failed:', err);
-    });
+    // Send OTP email
+    await sendOtpEmail(email, otp, 'Registration OTP - BGMI Tournament');
 
     res.json({ success: true, message: 'OTP sent to email' });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Registration OTP failed:', error);
+    res.status(500).json({ success: false, message: error.message || 'Failed to send OTP email' });
   }
 };
 

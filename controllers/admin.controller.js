@@ -47,7 +47,10 @@ import { uploadImage, deleteImage } from '../services/cloudinary.service.js';
 
 export const getAdminProfile = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.user._id).select('-password');
+    let admin = await Admin.findById(req.user._id).select('-password');
+    if (!admin) {
+      admin = await User.findById(req.user._id).select('-password');
+    }
     if (!admin) {
       return res.status(404).json({ success: false, message: 'Admin not found' });
     }
@@ -60,7 +63,10 @@ export const getAdminProfile = async (req, res) => {
 export const updateAdminProfile = async (req, res) => {
   try {
     const { name, email } = req.body;
-    const admin = await Admin.findById(req.user._id);
+    let admin = await Admin.findById(req.user._id);
+    if (!admin) {
+      admin = await User.findById(req.user._id);
+    }
 
     if (!admin) {
       return res.status(404).json({ success: false, message: 'Admin not found' });
@@ -80,9 +86,9 @@ export const updateAdminProfile = async (req, res) => {
       success: true,
       message: 'Profile updated successfully',
       data: {
-        name: admin.name,
+        name: admin.name || 'Admin',
         email: admin.email,
-        profilePhoto: admin.profilePhoto
+        profilePhoto: admin.profilePhoto || ''
       }
     });
   } catch (error) {
@@ -98,7 +104,14 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ success: false, message: 'New passwords do not match' });
     }
 
-    const admin = await Admin.findById(req.user._id);
+    let admin = await Admin.findById(req.user._id);
+    if (!admin) {
+      admin = await User.findById(req.user._id);
+    }
+
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
 
     if (!(await admin.matchPassword(currentPassword))) {
       return res.status(401).json({ success: false, message: 'Incorrect current password' });
