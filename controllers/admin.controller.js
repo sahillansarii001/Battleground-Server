@@ -257,18 +257,26 @@ export const approveTeam = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Team is not pending approval' });
     }
 
-    const temporaryPassword = crypto.randomBytes(6).toString('hex');
+    const temporaryPassword = crypto.randomBytes(4).toString('hex');
 
-    // Create user
-    const newUser = await User.create({
-      email: team.email,
-      password: temporaryPassword,
-      role: 'TEAM_USER',
-      mustChangePassword: true,
-    });
+    // Create or update user
+    let user = await User.findOne({ email: team.email });
+    if (!user) {
+      user = await User.create({
+        email: team.email,
+        password: temporaryPassword,
+        role: 'TEAM_USER',
+        mustChangePassword: true,
+      });
+    } else {
+      user.password = temporaryPassword;
+      user.mustChangePassword = true;
+      user.role = 'TEAM_USER';
+      await user.save();
+    }
 
     team.status = 'APPROVED';
-    team.userId = newUser._id;
+    team.userId = user._id;
     await team.save();
 
     await AuditLog.create({

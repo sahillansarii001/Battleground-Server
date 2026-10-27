@@ -160,6 +160,15 @@ const getTemplate = (templateName, variables) => {
   }
 };
 
+export const sendTeamRegistrationReceivedEmail = async (email, teamName, communityLink) => {
+  const html = getTemplate('team-received', { 
+    teamName, 
+    email,
+    communityLink: communityLink || 'https://t.me/bgmi_tournament'
+  });
+  await sendEmail({ email, subject: 'Squad Deployment Received - BGMI Tournament', html });
+};
+
 export const sendTeamApprovalEmail = async (email, temporaryPassword, teamName, communityLink) => {
   const html = getTemplate('team-approved', { 
     teamName, 
