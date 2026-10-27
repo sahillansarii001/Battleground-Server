@@ -1,10 +1,14 @@
+import crypto from 'crypto';
 import Team from '../models/Team.js';
 import Player from '../models/Player.js';
 import User from '../models/User.js';
+import Settings from '../models/Settings.js';
 import { uploadImage, deleteImage } from '../services/cloudinary.service.js';
+import { sendTeamApprovalEmail } from '../services/email.service.js';
 
 export const registerTeam = async (req, res) => {
   let newTeam = null;
+  let createdUser = null;
   try {
     let { teamName, teamType, email, players } = req.body;
     
@@ -56,6 +60,12 @@ export const registerTeam = async (req, res) => {
       }
     }
 
+    // Check existing user
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+      return res.status(400).json({ success: false, message: 'An account with this email already exists' });
+    }
+
     // Check BGMI IDs across database
     const existingPlayers = await Player.find({ bgmiId: { $in: bgmiIds } });
     if (existingPlayers.length > 0) {
@@ -74,7 +84,7 @@ export const registerTeam = async (req, res) => {
       teamType,
       email,
       logo: logoData,
-      status: 'PENDING'
+      status: 'APPROVED'
     });
 
     // Create players
@@ -87,9 +97,35 @@ export const registerTeam = async (req, res) => {
     }));
     await Player.insertMany(playerDocs);
 
+    // Generate temporary password (8 characters)
+    const temporaryPassword = crypto.randomBytes(4).toString('hex');
+
+    // Create user account with mustChangePassword: true
+    createdUser = await User.create({
+      email,
+      password: temporaryPassword,
+      role: 'TEAM_USER',
+      mustChangePassword: true,
+    });
+
+    newTeam.userId = createdUser._id;
+    await newTeam.save();
+
+    // Fetch community link
+    const settings = await Settings.findOne();
+    const communityLink = settings ? settings.communityLink : 'https://t.me/bgmi_tournament';
+
+    // Dispatch login credentials email immediately
+    try {
+      await sendTeamApprovalEmail(newTeam.email, temporaryPassword, newTeam.teamName, communityLink);
+      console.log(`[registerTeam] Dispatched credentials email to ${newTeam.email}`);
+    } catch (emailErr) {
+      console.error('[registerTeam] Failed to send credentials email:', emailErr.message);
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Team registered successfully. Pending admin approval.',
+      message: 'Team registered successfully. Temporary login credentials dispatched to your email.',
       data: newTeam
     });
 
@@ -100,6 +136,13 @@ export const registerTeam = async (req, res) => {
         await Player.deleteMany({ teamId: newTeam._id });
       } catch (cleanupErr) {
         console.error('Error rolling back team creation:', cleanupErr);
+      }
+    }
+    if (createdUser?._id) {
+      try {
+        await User.findByIdAndDelete(createdUser._id);
+      } catch (cleanupErr) {
+        console.error('Error rolling back user creation:', cleanupErr);
       }
     }
     res.status(500).json({ success: false, message: error.message });

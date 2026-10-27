@@ -161,7 +161,9 @@ export const resetPassword = async (req, res) => {
 
 export const changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
+    const { currentPassword, newPassword, password } = req.body;
+    const targetPassword = newPassword || password;
+
     let user = await User.findById(req.user._id || req.user.id);
     if (!user) {
       user = await Admin.findById(req.user._id || req.user.id);
@@ -170,12 +172,20 @@ export const changePassword = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
     
-    // Verify current password
-    if (!(await user.matchPassword(currentPassword))) {
-      return res.status(400).json({ success: false, message: 'CURRENT ACCESS CODE IS INCORRECT.' });
+    // If not first-time forced change, verify current password if provided
+    if (currentPassword) {
+      if (!(await user.matchPassword(currentPassword))) {
+        return res.status(400).json({ success: false, message: 'CURRENT ACCESS CODE IS INCORRECT.' });
+      }
+    } else if (!user.mustChangePassword) {
+      return res.status(400).json({ success: false, message: 'CURRENT ACCESS CODE IS REQUIRED.' });
     }
-    
-    user.password = newPassword;
+
+    if (!targetPassword) {
+      return res.status(400).json({ success: false, message: 'NEW PASSWORD IS REQUIRED.' });
+    }
+
+    user.password = targetPassword;
     user.mustChangePassword = false;
     await user.save();
     res.json({ success: true, message: 'ACCESS CODE UPDATED SUCCESSFULLY.' });
