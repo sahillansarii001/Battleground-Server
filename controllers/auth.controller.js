@@ -73,10 +73,18 @@ export const forgotPassword = async (req, res) => {
     await Otp.deleteMany({ email }); // clear old OTPs
     await Otp.create({ email, otp });
 
-    // Send OTP email in background to prevent hanging the API response
-    sendOtpEmail(email, otp).catch(err => {
-      console.error('[forgotPassword] Background OTP email error:', err.message);
-    });
+    // Send OTP email
+    try {
+      await sendOtpEmail(email, otp);
+    } catch (err) {
+      console.error('[forgotPassword] OTP email error:', err.message);
+      return res.status(500).json({ 
+        success: false, 
+        message: err.message.includes('transporter') 
+          ? 'Email service is not configured on the server. Please check environment variables on Render.' 
+          : `Failed to send email: ${err.message}` 
+      });
+    }
 
     res.json({ success: true, message: 'OTP sent to email' });
   } catch (error) {
@@ -102,10 +110,18 @@ export const sendRegistrationOtp = async (req, res) => {
     await Otp.deleteMany({ email }); // clear old OTPs
     await Otp.create({ email, otp });
 
-    // Send OTP email in background so frontend immediately switches to OTP input
-    sendOtpEmail(email, otp, 'Registration OTP - BGMI Tournament').catch(err => {
-      console.error('[sendRegistrationOtp] Background OTP email error:', err.message);
-    });
+    // Send OTP email
+    try {
+      await sendOtpEmail(email, otp, 'Registration OTP - BGMI Tournament');
+    } catch (err) {
+      console.error('[sendRegistrationOtp] OTP email error:', err.message);
+      return res.status(500).json({ 
+        success: false, 
+        message: err.message.includes('transporter') 
+          ? 'Email service is not configured on the server. Please check environment variables on Render.' 
+          : `Failed to send OTP email: ${err.message}` 
+      });
+    }
 
     res.json({ success: true, message: 'OTP sent to email' });
   } catch (error) {

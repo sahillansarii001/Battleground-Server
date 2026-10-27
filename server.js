@@ -18,8 +18,13 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(express.json());
-app.use(cors());
-app.use(helmet());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(helmet({
+  crossOriginResourcePolicy: false
+}));
 app.use(morgan('dev'));
 
 import publicRoutes from './routes/public.routes.js';
@@ -34,9 +39,19 @@ app.use('/api/rules', rulebookRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
 app.get('/api/health', (req, res) => {
+  const hasAppPassword = !!(process.env.EMAIL_PASS || process.env.GOOGLE_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD);
+  const hasOAuth = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN);
+  const emailConfigured = hasAppPassword || hasOAuth;
+
   res.json({
     success: true,
-    message: 'BGMI Tournament API is running'
+    message: 'BGMI Tournament API is running',
+    environment: process.env.NODE_ENV || 'development',
+    emailService: {
+      configured: emailConfigured,
+      authMethod: hasAppPassword ? 'Gmail App Password' : (hasOAuth ? 'Google OAuth2' : 'NOT CONFIGURED'),
+      senderEmail: process.env.GOOGLE_EMAIL || process.env.EMAIL_USER || 'Not set'
+    }
   });
 });
 
