@@ -372,24 +372,80 @@ export const updateTeamDetails = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Team not found' });
     }
 
-    if (teamName) team.teamName = teamName;
-    if (email) team.email = email;
-    if (teamType) team.teamType = teamType;
+    // Check unique teamName if modified
+    if (teamName && teamName.trim() !== team.teamName) {
+      const nameExists = await Team.findOne({ teamName: teamName.trim(), _id: { $ne: id } });
+      if (nameExists) {
+        return res.status(400).json({ success: false, message: 'Team name is already taken by another team' });
+      }
+      team.teamName = teamName.trim();
+    }
+
+    // Check unique email if modified
+    if (email && email.trim() !== team.email) {
+      const cleanEmail = email.trim().toLowerCase();
+      const emailExists = await Team.findOne({ email: cleanEmail, _id: { $ne: id } });
+      if (emailExists) {
+        return res.status(400).json({ success: false, message: 'Email is already used by another team' });
+      }
+      // Check user collection
+      const userExists = await User.findOne({ email: cleanEmail, _id: { $ne: team.userId } });
+      if (userExists) {
+        return res.status(400).json({ success: false, message: 'Email is already used by another user account' });
+      }
+      team.email = cleanEmail;
+    }
+
+    if (teamType) {
+      team.teamType = teamType;
+    }
     
-    if (players) {
+    // Validate players if provided
+    if (players && Array.isArray(players)) {
+      const currentType = teamType || team.teamType || 'SQUAD';
+      const expectedCount = currentType === 'SOLO' ? 1 : (currentType === 'DUO' ? 2 : (currentType === 'TRIO' ? 3 : 4));
+      if (players.length !== expectedCount) {
+        return res.status(400).json({ success: false, message: `${currentType} requires exactly ${expectedCount} player(s)` });
+      }
+
       for (const p of players) {
+        if (!p.playerName || !p.inGameName || !p.bgmiId) {
+          return res.status(400).json({ success: false, message: `All details are required for operator ${p.inGameName || p.playerName || ''}` });
+        }
         if (!/^\d{10}$/.test(p.bgmiId)) {
-          return res.status(400).json({ success: false, message: `BGMI ID for ${p.inGameName || 'a player'} must be exactly 10 digits` });
+          return res.status(400).json({ success: false, message: `BGMI ID for ${p.inGameName || 'an operator'} must be exactly 10 digits` });
         }
       }
-      await Player.deleteMany({ teamId: id });
-      const playersToInsert = players.map(p => ({
-        ...p,
-        teamId: id
-      }));
-      if (playersToInsert.length > 0) {
-        await Player.insertMany(playersToInsert);
+
+      // Check intra-squad uniqueness
+      const bgmiIds = players.map(p => p.bgmiId);
+      if (new Set(bgmiIds).size !== bgmiIds.length) {
+        return res.status(400).json({ success: false, message: 'Each operator must have a unique BGMI ID within the squad' });
       }
+
+      // Check uniqueness across other teams
+      const existingPlayers = await Player.find({
+        bgmiId: { $in: bgmiIds },
+        teamId: { $ne: id }
+      });
+      if (existingPlayers.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `BGMI ID ${existingPlayers[0].bgmiId} is already registered to another team`
+        });
+      }
+
+      // Safe replacement: clean player documents without old internal fields
+      const playersToInsert = players.map(p => {
+        const { _id, createdAt, updatedAt, __v, ...playerData } = p;
+        return {
+          ...playerData,
+          teamId: id
+        };
+      });
+
+      await Player.deleteMany({ teamId: id });
+      await Player.insertMany(playersToInsert);
     }
 
     await team.save();
@@ -398,7 +454,7 @@ export const updateTeamDetails = async (req, res) => {
     if (email && team.userId) {
       const user = await User.findById(team.userId);
       if (user) {
-        user.email = email;
+        user.email = team.email;
         await user.save();
       }
     }
