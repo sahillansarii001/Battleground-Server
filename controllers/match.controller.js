@@ -115,9 +115,17 @@ export const updateMatch = async (req, res) => {
 export const deleteMatch = async (req, res) => {
   try {
     const match = await Match.findById(req.params.id);
-    if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+    if (!match) {
+      // Clean up orphaned records if any
+      await MatchParticipant.deleteMany({ matchId: req.params.id });
+      await Score.deleteMany({ matchId: req.params.id });
+      return res.status(404).json({ success: false, message: 'Match not found or already deleted' });
+    }
     
     await Match.deleteOne({ _id: req.params.id });
+    await MatchParticipant.deleteMany({ matchId: req.params.id });
+    await Score.deleteMany({ matchId: req.params.id });
+
     res.json({ success: true, message: 'Match deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
