@@ -37,21 +37,22 @@ export const createMatch = async (req, res) => {
     });
     await match.save();
     
-    // Email all users about the new match
-    const allUsers = await User.find({});
-    for (const user of allUsers) {
-      if (user.email) {
-        await sendMatchScheduleEmail(
-          user.email,
-          match.matchName,
-          match.date,
-          match.startTime,
-          match.map,
-          match.mode,
-          false
-        );
+    // Email all users about the new match in background (non-blocking)
+    User.find({}).then(allUsers => {
+      for (const user of allUsers) {
+        if (user.email) {
+          sendMatchScheduleEmail(
+            user.email,
+            match.matchName,
+            match.date,
+            match.startTime,
+            match.map,
+            match.mode,
+            false
+          ).catch(err => console.error(`[createMatch] Failed sending email to ${user.email}:`, err.message));
+        }
       }
-    }
+    }).catch(err => console.error('[createMatch] Failed querying users for match notification:', err));
     
     res.status(201).json({ success: true, data: match });
   } catch (error) {
@@ -90,21 +91,22 @@ export const updateMatch = async (req, res) => {
     );
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
 
-    // Email all users about the updated match
-    const allUsers = await User.find({});
-    for (const user of allUsers) {
-      if (user.email) {
-        await sendMatchScheduleEmail(
-          user.email,
-          match.matchName,
-          match.date,
-          match.startTime,
-          match.map,
-          match.mode,
-          true
-        );
+    // Email all users about the updated match in background (non-blocking)
+    User.find({}).then(allUsers => {
+      for (const user of allUsers) {
+        if (user.email) {
+          sendMatchScheduleEmail(
+            user.email,
+            match.matchName,
+            match.date,
+            match.startTime,
+            match.map,
+            match.mode,
+            true
+          ).catch(err => console.error(`[updateMatch] Failed sending email to ${user.email}:`, err.message));
+        }
       }
-    }
+    }).catch(err => console.error('[updateMatch] Failed querying users for match update notification:', err));
 
     res.json({ success: true, data: match });
   } catch (error) {

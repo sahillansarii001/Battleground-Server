@@ -281,7 +281,11 @@ export const approveTeam = async (req, res) => {
     const settings = await Settings.findOne();
     const communityLink = settings ? settings.communityLink : 'https://t.me/bgmi_tournament';
 
-    await sendTeamApprovalEmail(team.email, temporaryPassword, team.teamName, communityLink);
+    try {
+      await sendTeamApprovalEmail(team.email, temporaryPassword, team.teamName, communityLink);
+    } catch (emailErr) {
+      console.error('[approveTeam] Email failed:', emailErr.message);
+    }
 
     res.json({ success: true, message: 'Team approved successfully', data: team });
   } catch (error) {
@@ -309,7 +313,11 @@ export const rejectTeam = async (req, res) => {
       targetId: team._id,
     });
 
-    await sendTeamRejectionEmail(team.email, reason, team.teamName);
+    try {
+      await sendTeamRejectionEmail(team.email, reason, team.teamName);
+    } catch (emailErr) {
+      console.error('[rejectTeam] Email failed:', emailErr.message);
+    }
 
     res.json({ success: true, message: 'Team rejected successfully', data: team });
   } catch (error) {
