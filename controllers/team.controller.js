@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import { uploadImage, deleteImage } from '../services/cloudinary.service.js';
 
 export const registerTeam = async (req, res) => {
+  let newTeam = null;
   try {
     let { teamName, teamType, email, players } = req.body;
     
@@ -27,6 +28,12 @@ export const registerTeam = async (req, res) => {
       }
     }
 
+    // Check for duplicate BGMI IDs within the squad
+    const bgmiIds = players.map(p => p.bgmiId);
+    if (new Set(bgmiIds).size !== bgmiIds.length) {
+      return res.status(400).json({ success: false, message: 'Each player must have a unique BGMI ID within the squad' });
+    }
+
     if (teamType === 'SOLO' && players.length !== 1) {
       return res.status(400).json({ success: false, message: 'SOLO requires exactly 1 player' });
     }
@@ -40,11 +47,16 @@ export const registerTeam = async (req, res) => {
     // Check existing team
     const teamExists = await Team.findOne({ $or: [{ email }, { teamName }] });
     if (teamExists) {
-      return res.status(400).json({ success: false, message: 'Team with this email or name already exists' });
+      // Check if this team is an orphaned record from a previous failed registration (0 players)
+      const count = await Player.countDocuments({ teamId: teamExists._id });
+      if (count === 0 && teamExists.status === 'PENDING') {
+        await Team.findByIdAndDelete(teamExists._id);
+      } else {
+        return res.status(400).json({ success: false, message: 'Team with this email or name already exists' });
+      }
     }
 
-    // Check BGMI IDs
-    const bgmiIds = players.map(p => p.bgmiId);
+    // Check BGMI IDs across database
     const existingPlayers = await Player.find({ bgmiId: { $in: bgmiIds } });
     if (existingPlayers.length > 0) {
       return res.status(400).json({ success: false, message: 'One or more BGMI IDs are already registered' });
@@ -57,7 +69,7 @@ export const registerTeam = async (req, res) => {
     }
 
     // Create team
-    const newTeam = await Team.create({
+    newTeam = await Team.create({
       teamName,
       teamType,
       email,
@@ -82,6 +94,14 @@ export const registerTeam = async (req, res) => {
     });
 
   } catch (error) {
+    if (newTeam?._id) {
+      try {
+        await Team.findByIdAndDelete(newTeam._id);
+        await Player.deleteMany({ teamId: newTeam._id });
+      } catch (cleanupErr) {
+        console.error('Error rolling back team creation:', cleanupErr);
+      }
+    }
     res.status(500).json({ success: false, message: error.message });
   }
 };
