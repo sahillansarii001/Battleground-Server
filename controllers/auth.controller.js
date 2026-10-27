@@ -73,7 +73,10 @@ export const forgotPassword = async (req, res) => {
     await Otp.deleteMany({ email }); // clear old OTPs
     await Otp.create({ email, otp });
 
-    await sendOtpEmail(email, otp);
+    // Send OTP email in background to prevent hanging the API response
+    sendOtpEmail(email, otp).catch(err => {
+      console.error('[forgotPassword] Background OTP email error:', err.message);
+    });
 
     res.json({ success: true, message: 'OTP sent to email' });
   } catch (error) {
@@ -99,8 +102,10 @@ export const sendRegistrationOtp = async (req, res) => {
     await Otp.deleteMany({ email }); // clear old OTPs
     await Otp.create({ email, otp });
 
-    // Send OTP email
-    await sendOtpEmail(email, otp, 'Registration OTP - BGMI Tournament');
+    // Send OTP email in background so frontend immediately switches to OTP input
+    sendOtpEmail(email, otp, 'Registration OTP - BGMI Tournament').catch(err => {
+      console.error('[sendRegistrationOtp] Background OTP email error:', err.message);
+    });
 
     res.json({ success: true, message: 'OTP sent to email' });
   } catch (error) {

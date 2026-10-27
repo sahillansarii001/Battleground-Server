@@ -10,24 +10,31 @@ const __dirname = path.dirname(__filename);
 
 const OAuth2 = google.auth.OAuth2;
 
-const createTransporter = async () => {
+let cachedTransporter = null;
+
+const createTransporter = async (forceNew = false) => {
+  if (cachedTransporter && !forceNew) {
+    return cachedTransporter;
+  }
+
   // Option 1: Gmail App Password (recommended, stable, does not expire every 7 days)
   const appPassword = process.env.EMAIL_PASS || process.env.GOOGLE_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD;
   const emailUser = process.env.EMAIL_USER || process.env.GOOGLE_EMAIL;
 
   if (appPassword && emailUser) {
-    return nodemailer.createTransport({
+    cachedTransporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         user: emailUser,
         pass: appPassword.replace(/\s+/g, '') // remove any spaces if copied from Google UI
       }
     });
+    return cachedTransporter;
   }
 
   // Option 2: Generic SMTP provider (e.g. Brevo, SendGrid, Mailgun)
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-    return nodemailer.createTransport({
+    cachedTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: Number(process.env.SMTP_PORT) || 587,
       secure: process.env.SMTP_SECURE === 'true',
@@ -36,6 +43,7 @@ const createTransporter = async () => {
         pass: process.env.SMTP_PASS
       }
     });
+    return cachedTransporter;
   }
 
   // Option 3: Google OAuth2
@@ -73,8 +81,10 @@ const createTransporter = async () => {
         }
       });
 
+      cachedTransporter = transporter;
       return transporter;
     } catch (error) {
+      cachedTransporter = null;
       if (
         error?.message?.includes('invalid_grant') ||
         error?.response?.data?.error === 'invalid_grant' ||
@@ -130,6 +140,7 @@ const sendEmail = async (options) => {
     console.log(`[Email Service] Email sent successfully to ${options.email} (Message ID: ${info?.messageId || 'OK'})`);
     return info;
   } catch (error) {
+    cachedTransporter = null;
     console.error(`[Email Service] Failed sending email to ${options.email}:`, error.message);
     throw error;
   }
