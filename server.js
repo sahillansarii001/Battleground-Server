@@ -40,13 +40,11 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.get('/api/health', (req, res) => {
   const hasResend = !!process.env.RESEND_API_KEY;
   const hasAppPassword = !!(process.env.EMAIL_PASS || process.env.GOOGLE_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD);
-  const hasOAuth = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN);
-  const emailConfigured = hasResend || hasAppPassword || hasOAuth;
+  const emailConfigured = hasResend || hasAppPassword;
 
   let authMethod = 'NOT CONFIGURED';
   if (hasResend) authMethod = 'Resend API';
   else if (hasAppPassword) authMethod = 'Gmail App Password';
-  else if (hasOAuth) authMethod = 'Google OAuth2';
 
   res.json({
     success: true,

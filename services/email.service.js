@@ -1,5 +1,4 @@
 import nodemailer from 'nodemailer';
-import { google } from 'googleapis';
 import { Resend } from 'resend';
 import fs from 'fs';
 import path from 'path';
@@ -8,8 +7,6 @@ import 'dotenv/config';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const OAuth2 = google.auth.OAuth2;
 
 let cachedTransporter = null;
 let resendClient = null;
@@ -29,7 +26,7 @@ const createTransporter = async (forceNew = false) => {
     return cachedTransporter;
   }
 
-  // Option 1: Gmail App Password (recommended, stable, does not expire every 7 days)
+  // Option 1: Gmail App Password
   const appPassword = process.env.EMAIL_PASS || process.env.GOOGLE_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD;
   const emailUser = process.env.EMAIL_USER || process.env.GOOGLE_EMAIL;
 
@@ -38,13 +35,13 @@ const createTransporter = async (forceNew = false) => {
       service: 'gmail',
       auth: {
         user: emailUser,
-        pass: appPassword.replace(/\s+/g, '') // remove any spaces if copied from Google UI
+        pass: appPassword.replace(/\s+/g, '') // remove any spaces
       }
     });
     return cachedTransporter;
   }
 
-  // Option 2: Generic SMTP provider (e.g. Brevo, SendGrid, Mailgun, Resend SMTP)
+  // Option 2: Generic SMTP provider
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     cachedTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -56,63 +53,6 @@ const createTransporter = async (forceNew = false) => {
       }
     });
     return cachedTransporter;
-  }
-
-  // Option 3: Google OAuth2
-  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN) {
-    try {
-      const oauth2Client = new OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI || 'https://developers.google.com/oauthplayground'
-      );
-
-      oauth2Client.setCredentials({
-        refresh_token: process.env.GOOGLE_REFRESH_TOKEN
-      });
-
-      const accessToken = await new Promise((resolve, reject) => {
-        oauth2Client.getAccessToken((err, token) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(token);
-          }
-        });
-      });
-
-      const transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          type: 'OAuth2',
-          user: process.env.GOOGLE_EMAIL,
-          accessToken,
-          clientId: process.env.GOOGLE_CLIENT_ID,
-          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-          refreshToken: process.env.GOOGLE_REFRESH_TOKEN
-        }
-      });
-
-      cachedTransporter = transporter;
-      return transporter;
-    } catch (error) {
-      cachedTransporter = null;
-      if (
-        error?.message?.includes('invalid_grant') ||
-        error?.response?.data?.error === 'invalid_grant' ||
-        error?.code === 400
-      ) {
-        console.error(
-          '\n============================================================\n' +
-          '❌ [EMAIL ERROR]: Google OAuth2 refresh token is expired or invalid (invalid_grant).\n' +
-          '   Recommended: Use Resend (RESEND_API_KEY) or Gmail App Password (EMAIL_PASS).\n' +
-          '============================================================\n'
-        );
-      } else {
-        console.error('Error in creating Google OAuth2 email transporter:', error);
-      }
-      return null;
-    }
   }
 
   return null;
@@ -144,7 +84,7 @@ const sendEmail = async (options) => {
     }
   }
 
-  // Option 2: Fallback to Nodemailer (App Password, SMTP, or OAuth2)
+  // Option 2: Fallback to Nodemailer (App Password or SMTP)
   const emailTransporter = await createTransporter();
   if (!emailTransporter) {
     const errorMsg = 'Could not initialize email service. Please add RESEND_API_KEY or EMAIL_PASS in your environment variables.';
@@ -288,7 +228,6 @@ export const sendMatchBroadcastEmail = async (email, matchTitle, title, message)
   `;
   await sendEmail({ email, subject: `${title}: ${matchTitle}`, html });
 };
-
 
 export const sendMatchRoomDetailsEmail = async (email, matchName, matchTime, roomId, roomPassword) => {
   const html = `
