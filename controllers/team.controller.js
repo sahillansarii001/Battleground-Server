@@ -67,7 +67,8 @@ export const registerTeam = async (req, res) => {
     // Check BGMI IDs across database
     const existingPlayers = await Player.find({ bgmiId: { $in: bgmiIds } });
     if (existingPlayers.length > 0) {
-      return res.status(400).json({ success: false, message: 'One or more BGMI IDs are already registered' });
+      const duplicateList = existingPlayers.map(p => p.bgmiId).join(', ');
+      return res.status(400).json({ success: false, message: `BGMI ID already registered: ${duplicateList}. Each player must have a unique ID.` });
     }
 
     // Handle Logo Upload
