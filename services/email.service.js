@@ -63,7 +63,7 @@ const sendEmail = async (options) => {
   const resend = getResendClient();
   if (resend) {
     try {
-      const fromAddress = process.env.RESEND_FROM || process.env.EMAIL_FROM || 'BGMI Tournament <onboarding@resend.dev>';
+      const fromAddress = process.env.RESEND_FROM || process.env.EMAIL_FROM || 'BGMI Tournament <no-reply@battleground.nexcoreinstitute.org>';
       const { data, error } = await resend.emails.send({
         from: fromAddress,
         to: options.email,

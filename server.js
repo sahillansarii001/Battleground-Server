@@ -54,7 +54,7 @@ app.get('/api/health', (req, res) => {
       configured: emailConfigured,
       authMethod,
       sender: hasResend
-        ? (process.env.RESEND_FROM || 'BGMI Tournament <onboarding@resend.dev>')
+        ? (process.env.RESEND_FROM || 'BGMI Tournament <no-reply@battleground.nexcoreinstitute.org>')
         : (process.env.GOOGLE_EMAIL || process.env.EMAIL_USER || 'Not set')
     }
   });
