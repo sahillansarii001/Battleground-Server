@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { google } from 'googleapis';
+import { Resend } from 'resend';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -11,6 +12,17 @@ const __dirname = path.dirname(__filename);
 const OAuth2 = google.auth.OAuth2;
 
 let cachedTransporter = null;
+let resendClient = null;
+
+const getResendClient = () => {
+  if (process.env.RESEND_API_KEY) {
+    if (!resendClient) {
+      resendClient = new Resend(process.env.RESEND_API_KEY.trim());
+    }
+    return resendClient;
+  }
+  return null;
+};
 
 const createTransporter = async (forceNew = false) => {
   if (cachedTransporter && !forceNew) {
@@ -32,7 +44,7 @@ const createTransporter = async (forceNew = false) => {
     return cachedTransporter;
   }
 
-  // Option 2: Generic SMTP provider (e.g. Brevo, SendGrid, Mailgun)
+  // Option 2: Generic SMTP provider (e.g. Brevo, SendGrid, Mailgun, Resend SMTP)
   if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
     cachedTransporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -93,14 +105,7 @@ const createTransporter = async (forceNew = false) => {
         console.error(
           '\n============================================================\n' +
           '❌ [EMAIL ERROR]: Google OAuth2 refresh token is expired or invalid (invalid_grant).\n' +
-          '   In Google Cloud Console ("Testing" mode), OAuth refresh tokens expire after 7 days.\n\n' +
-          '   Recommended Solution (Gmail App Password):\n' +
-          '   1. Go to https://myaccount.google.com/apppasswords\n' +
-          '   2. Generate a 16-character App Password (requires 2-Step Verification enabled)\n' +
-          '   3. Add `EMAIL_PASS=your_16_char_password` to Server/.env\n\n' +
-          '   Alternative Solution (OAuth2):\n' +
-          '   1. Go to https://developers.google.com/oauthplayground\n' +
-          '   2. Exchange authorization code for a new refresh token and update GOOGLE_REFRESH_TOKEN in .env\n' +
+          '   Recommended: Use Resend (RESEND_API_KEY) or Gmail App Password (EMAIL_PASS).\n' +
           '============================================================\n'
         );
       } else {
@@ -110,19 +115,39 @@ const createTransporter = async (forceNew = false) => {
     }
   }
 
-  console.error(
-    '\n============================================================\n' +
-    '❌ [EMAIL ERROR]: No valid email configuration found.\n' +
-    '   Please configure EMAIL_PASS (Gmail App Password) or GOOGLE_REFRESH_TOKEN in Server/.env\n' +
-    '============================================================\n'
-  );
   return null;
 };
 
 const sendEmail = async (options) => {
+  // Option 1: Resend (Fastest, modern, high deliverability)
+  const resend = getResendClient();
+  if (resend) {
+    try {
+      const fromAddress = process.env.RESEND_FROM || process.env.EMAIL_FROM || 'BGMI Tournament <onboarding@resend.dev>';
+      const { data, error } = await resend.emails.send({
+        from: fromAddress,
+        to: options.email,
+        subject: options.subject,
+        html: options.html,
+      });
+
+      if (error) {
+        console.error(`[Resend Error] Failed sending to ${options.email}:`, error);
+        throw new Error(error.message || 'Resend failed to deliver email');
+      }
+
+      console.log(`[Resend] Email sent successfully to ${options.email} (ID: ${data?.id})`);
+      return data;
+    } catch (err) {
+      console.error(`[Resend Exception] Error sending to ${options.email}:`, err.message);
+      throw err;
+    }
+  }
+
+  // Option 2: Fallback to Nodemailer (App Password, SMTP, or OAuth2)
   const emailTransporter = await createTransporter();
   if (!emailTransporter) {
-    const errorMsg = 'Could not create email transporter. Check your email credentials in .env (invalid_grant or missing EMAIL_PASS).';
+    const errorMsg = 'Could not initialize email service. Please add RESEND_API_KEY or EMAIL_PASS in your environment variables.';
     console.error(`Email sending failed: ${errorMsg}`);
     throw new Error(errorMsg);
   }
@@ -227,6 +252,43 @@ export const sendAdminNotificationEmail = async (subject, htmlContent) => {
     console.error('Failed to send admin notification:', error);
   }
 };
+
+export const sendMatchNotificationEmail = async (email, matchName, roomId, roomPassword, customMessage) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; background-color: #080A0C; color: #FFFFFF; padding: 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #111518; border: 1px solid rgba(255,106,0,0.3); border-top: 4px solid #FF6A00; padding: 20px;">
+        <h1 style="color: #FF6A00; text-transform: uppercase;">Room Details: ${matchName}</h1>
+        <p style="color: #B8C0C2;">Your squad has been scheduled for deployment. Below are your tactical credentials:</p>
+        <div style="background-color: #080A0C; border: 1px solid rgba(255,255,255,0.1); padding: 15px; margin: 20px 0; border-left: 3px solid #FF6A00;">
+          <p style="margin: 5px 0;"><strong>Room ID:</strong> <span style="font-family: monospace; font-size: 16px; color: #FF6A00;">${roomId}</span></p>
+          <p style="margin: 5px 0;"><strong>Password:</strong> <span style="font-family: monospace; font-size: 16px; color: #FF6A00;">${roomPassword}</span></p>
+        </div>
+        ${customMessage ? `<p style="color: #B8C0C2; font-style: italic;">"${customMessage}"</p>` : ''}
+        <p style="color: #888; font-size: 12px; margin-top: 20px;">Do not share these credentials with unauthorized operatives.</p>
+      </div>
+    </div>
+  `;
+  await sendEmail({ email, subject: `Room Details: ${matchName}`, html });
+};
+
+export const sendMatchBroadcastEmail = async (email, matchTitle, title, message) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; background-color: #080A0C; color: #FFFFFF; padding: 20px;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #111518; border: 1px solid rgba(255,106,0,0.3); border-top: 4px solid #FF6A00; padding: 20px;">
+        <h2 style="color: #FF6A00; text-transform: uppercase; margin-top: 0;">${title}</h2>
+        <h4 style="color: #FFFFFF; text-transform: uppercase; margin-bottom: 15px;">Match: ${matchTitle}</h4>
+        <div style="background-color: #080A0C; border: 1px solid rgba(255,255,255,0.1); padding: 15px; margin: 20px 0; border-left: 3px solid #FF6A00;">
+          <p style="color: #B8C0C2; line-height: 1.6; white-space: pre-wrap; margin: 0;">${message}</p>
+        </div>
+        <p style="color: #888; font-size: 11px; margin-top: 25px; text-transform: uppercase; letter-spacing: 1px;">
+          Official Transmission • BGMI Tournament Operations
+        </p>
+      </div>
+    </div>
+  `;
+  await sendEmail({ email, subject: `${title}: ${matchTitle}`, html });
+};
+
 
 export const sendMatchRoomDetailsEmail = async (email, matchName, matchTime, roomId, roomPassword) => {
   const html = `

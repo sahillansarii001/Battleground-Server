@@ -13,6 +13,7 @@ import matchRoutes from './routes/match.routes.js';
 import announcementRoutes from './routes/announcement.routes.js';
 import rulebookRoutes from './routes/rulebook.routes.js';
 import leaderboardRoutes from './routes/leaderboard.routes.js';
+import publicRoutes from './routes/public.routes.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -27,8 +28,6 @@ app.use(helmet({
 }));
 app.use(morgan('dev'));
 
-import publicRoutes from './routes/public.routes.js';
-
 app.use('/api/public', publicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/team', teamRoutes);
@@ -39,9 +38,15 @@ app.use('/api/rules', rulebookRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
 app.get('/api/health', (req, res) => {
+  const hasResend = !!process.env.RESEND_API_KEY;
   const hasAppPassword = !!(process.env.EMAIL_PASS || process.env.GOOGLE_APP_PASSWORD || process.env.GMAIL_APP_PASSWORD);
   const hasOAuth = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN);
-  const emailConfigured = hasAppPassword || hasOAuth;
+  const emailConfigured = hasResend || hasAppPassword || hasOAuth;
+
+  let authMethod = 'NOT CONFIGURED';
+  if (hasResend) authMethod = 'Resend API';
+  else if (hasAppPassword) authMethod = 'Gmail App Password';
+  else if (hasOAuth) authMethod = 'Google OAuth2';
 
   res.json({
     success: true,
@@ -49,8 +54,10 @@ app.get('/api/health', (req, res) => {
     environment: process.env.NODE_ENV || 'development',
     emailService: {
       configured: emailConfigured,
-      authMethod: hasAppPassword ? 'Gmail App Password' : (hasOAuth ? 'Google OAuth2' : 'NOT CONFIGURED'),
-      senderEmail: process.env.GOOGLE_EMAIL || process.env.EMAIL_USER || 'Not set'
+      authMethod,
+      sender: hasResend
+        ? (process.env.RESEND_FROM || 'BGMI Tournament <onboarding@resend.dev>')
+        : (process.env.GOOGLE_EMAIL || process.env.EMAIL_USER || 'Not set')
     }
   });
 });
@@ -68,4 +75,3 @@ const startServer = async () => {
 };
 
 startServer();
-// Trigger restart
