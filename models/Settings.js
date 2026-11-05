@@ -1,28 +1,34 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const settingsSchema = new mongoose.Schema({
-  communityLink: {
-    type: String,
-    default: 'https://discord.gg/example',
+const settingsSchema = new mongoose.Schema(
+  {
+    communityLink: {
+      type: String,
+      default: "https://t.me/+sT2Jb1LqB_VlMzE1",
+    },
+    prizePool: {
+      type: String,
+      default: "50K",
+    },
+    pointsSystem: {
+      perKill: { type: Number, default: 1 },
+      placementPoints: {
+        type: Map,
+        of: Number,
+        default: {
+          1: 10,
+          2: 6,
+          3: 5,
+          4: 4,
+        },
+      },
+    },
+    maps: {
+      type: [String],
+      default: ["ERANGEL", "MIRAMAR", "SANHOK", "VIKENDI"],
+    },
   },
-  prizePool: {
-    type: String,
-    default: '50K',
-  },
-  pointsSystem: {
-    perKill: { type: Number, default: 1 },
-    placementPoints: {
-      type: Map,
-      of: Number,
-      default: {
-        "1": 10, "2": 6, "3": 5, "4": 4
-      }
-    }
-  },
-  maps: {
-    type: [String],
-    default: ['ERANGEL', 'MIRAMAR', 'SANHOK', 'VIKENDI']
-  }
-}, { timestamps: true });
+  { timestamps: true },
+);
 
-export default mongoose.model('Settings', settingsSchema);
+export default mongoose.model("Settings", settingsSchema);
