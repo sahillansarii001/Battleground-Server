@@ -235,7 +235,22 @@ export const updateSettings = async (req, res) => {
     if (!settings) settings = new Settings();
     if (req.body.communityLink !== undefined) settings.communityLink = req.body.communityLink;
     if (req.body.prizePool !== undefined) settings.prizePool = req.body.prizePool;
-    if (req.body.pointsSystem !== undefined) settings.pointsSystem = req.body.pointsSystem;
+    if (req.body.pointsSystem !== undefined) {
+      if (req.body.pointsSystem.perKill !== undefined) {
+        settings.pointsSystem.perKill = Number(req.body.pointsSystem.perKill);
+      }
+      if (req.body.pointsSystem.placementPoints !== undefined) {
+        // Clear all old placement ranks so only explicitly configured ranks exist
+        settings.pointsSystem.placementPoints = new Map();
+        const incoming = req.body.pointsSystem.placementPoints;
+        for (const [rank, pts] of Object.entries(incoming)) {
+          const numericPts = Number(pts);
+          if (!isNaN(numericPts) && numericPts > 0) {
+            settings.pointsSystem.placementPoints.set(String(rank), numericPts);
+          }
+        }
+      }
+    }
     if (req.body.maps !== undefined) settings.maps = req.body.maps;
     await settings.save();
     res.json({ success: true, data: settings });
