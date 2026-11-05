@@ -17,6 +17,7 @@ export const getPublicStats = async (req, res) => {
 
     const settings = await Settings.findOne();
     const prizePool = settings?.prizePool || '50K';
+    const communityLink = settings?.communityLink || 'https://t.me/+sT2Jb1LqB_VlMzE1';
 
     res.json({
       success: true,
@@ -24,7 +25,25 @@ export const getPublicStats = async (req, res) => {
         totalSquads,
         activePlayers,
         totalMatches,
-        prizePool
+        prizePool,
+        communityLink
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const getPublicSettings = async (req, res) => {
+  try {
+    const settings = await Settings.findOne();
+    res.json({
+      success: true,
+      data: {
+        communityLink: settings?.communityLink || 'https://t.me/+sT2Jb1LqB_VlMzE1',
+        prizePool: settings?.prizePool || '50K',
+        maps: settings?.maps || ['ERANGEL', 'MIRAMAR', 'SANHOK', 'VIKENDI'],
+        pointsSystem: settings?.pointsSystem
       }
     });
   } catch (error) {
