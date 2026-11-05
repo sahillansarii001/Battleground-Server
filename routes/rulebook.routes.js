@@ -3,6 +3,7 @@ import {
   uploadRulebook, 
   getRulebooks, 
   publishRulebook, 
+  unpublishRulebook,
   getCurrentRulebook,
   updateRulebook,
   deleteRulebook
@@ -18,6 +19,7 @@ router.route('/')
   .post(protect, admin, uploadRulebook);
 
 router.put('/:id/publish', protect, admin, publishRulebook);
+router.put('/:id/unpublish', protect, admin, unpublishRulebook);
 
 router.route('/:id')
   .put(protect, admin, updateRulebook)
