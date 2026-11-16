@@ -457,8 +457,8 @@ export const updateTeamDetails = async (req, res) => {
         if (!p.playerName || !p.inGameName || !p.bgmiId) {
           return res.status(400).json({ success: false, message: `All details are required for operator ${p.inGameName || p.playerName || ''}` });
         }
-        if (!/^\d{10}$/.test(p.bgmiId)) {
-          return res.status(400).json({ success: false, message: `BGMI ID for ${p.inGameName || 'an operator'} must be exactly 10 digits` });
+        if (!/^\d{10,11}$/.test(p.bgmiId)) {
+          return res.status(400).json({ success: false, message: `BGMI ID for ${p.inGameName || 'an operator'} must be 10 or 11 digits` });
         }
       }
 

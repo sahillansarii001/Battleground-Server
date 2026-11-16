@@ -25,8 +25,8 @@ export const registerTeam = async (req, res) => {
     }
     
     for (const p of players) {
-      if (!/^\d{10}$/.test(p.bgmiId)) {
-        return res.status(400).json({ success: false, message: `BGMI ID for ${p.inGameName || 'a player'} must be exactly 10 digits` });
+      if (!/^\d{10,11}$/.test(p.bgmiId)) {
+        return res.status(400).json({ success: false, message: `BGMI ID for ${p.inGameName || 'a player'} must be 10 or 11 digits` });
       }
     }
 
