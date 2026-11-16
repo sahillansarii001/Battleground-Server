@@ -25,6 +25,10 @@ const teamSchema = new mongoose.Schema({
     enum: ['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED', 'DISQUALIFIED'],
     default: 'PENDING',
   },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

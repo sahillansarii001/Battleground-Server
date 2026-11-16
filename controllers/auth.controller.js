@@ -39,6 +39,7 @@ export const login = async (req, res) => {
           _id: user._id,
           email: user.email,
           name: user.name || (isAdmin ? 'Admin' : user.email.split('@')[0]),
+          profilePhoto: user.profilePhoto || '',
           role: user.role,
           mustChangePassword: user.mustChangePassword,
           token: generateToken(user._id, user.role),

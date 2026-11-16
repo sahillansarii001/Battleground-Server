@@ -63,32 +63,48 @@ export const getAdminProfile = async (req, res) => {
 export const updateAdminProfile = async (req, res) => {
   try {
     const { name, email } = req.body;
-    let admin = await Admin.findById(req.user._id);
-    if (!admin) {
-      admin = await User.findById(req.user._id);
+    let adminDoc = await Admin.findById(req.user._id);
+    let userDoc = await User.findById(req.user._id);
+
+    if (!adminDoc && !userDoc) {
+      if (req.user.email) {
+        adminDoc = await Admin.findOne({ email: req.user.email.toLowerCase() });
+        userDoc = await User.findOne({ email: req.user.email.toLowerCase() });
+      }
     }
 
-    if (!admin) {
+    if (!adminDoc && !userDoc) {
       return res.status(404).json({ success: false, message: 'Admin not found' });
     }
 
-    if (name) admin.name = name;
-    if (email) admin.email = email.toLowerCase();
-
+    let photoUrl = null;
     if (req.file) {
       const newPhotoData = await uploadImage(req.file.buffer, 'bgmi-admin');
-      admin.profilePhoto = newPhotoData.url;
+      photoUrl = newPhotoData.url;
     }
 
-    await admin.save();
+    if (adminDoc) {
+      if (name) adminDoc.name = name;
+      if (email) adminDoc.email = email.toLowerCase().trim();
+      if (photoUrl) adminDoc.profilePhoto = photoUrl;
+      await adminDoc.save();
+    }
 
+    if (userDoc) {
+      if (name) userDoc.name = name;
+      if (email) userDoc.email = email.toLowerCase().trim();
+      if (photoUrl) userDoc.profilePhoto = photoUrl;
+      await userDoc.save();
+    }
+
+    const currentDoc = adminDoc || userDoc;
     res.json({
       success: true,
       message: 'Profile updated successfully',
       data: {
-        name: admin.name || 'Admin',
-        email: admin.email,
-        profilePhoto: admin.profilePhoto || ''
+        name: currentDoc.name || 'Admin',
+        email: currentDoc.email,
+        profilePhoto: currentDoc.profilePhoto || ''
       }
     });
   } catch (error) {
@@ -204,8 +220,8 @@ export const getDashboardStats = async (req, res) => {
 
 export const getAllTeams = async (req, res) => {
   try {
-    const teams = await Team.find().sort({ createdAt: -1 }).lean();
-    const players = await Player.find().lean();
+    const teams = await Team.find({ isActive: { $ne: false } }).sort({ createdAt: -1 }).lean();
+    const players = await Player.find({ isActive: { $ne: false } }).lean();
     
     const teamsWithPlayers = teams.map(team => ({
       ...team,
@@ -510,14 +526,41 @@ export const deleteTeam = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Team not found' });
     }
 
-    // If team has a user, delete the user too
-    if (team.userId) {
-      await User.findByIdAndDelete(team.userId);
+    const timestamp = Date.now();
+
+    // 1. Soft-delete the team
+    team.isActive = false;
+    team.status = 'DISQUALIFIED';
+    // Append timestamp to unique fields so players/team can re-register cleanly if desired
+    team.teamName = `${team.teamName} [DELETED_${timestamp}]`;
+    team.email = `deleted_${timestamp}_${team.email}`;
+    await team.save();
+
+    // 2. Soft-delete all players belonging to this team
+    const teamPlayers = await Player.find({ teamId: id });
+    for (const p of teamPlayers) {
+      p.isActive = false;
+      p.status = 'INACTIVE';
+      if (!p.originalBgmiId) {
+        p.originalBgmiId = p.bgmiId;
+      }
+      if (!p.bgmiId.includes('_deleted_')) {
+        p.bgmiId = `${p.bgmiId}_deleted_${timestamp}`;
+      }
+      await p.save();
     }
 
-    await Team.findByIdAndDelete(id);
+    // 3. Soft-delete associated user account if exists
+    if (team.userId) {
+      const user = await User.findById(team.userId);
+      if (user) {
+        user.isActive = false;
+        user.email = `deleted_${timestamp}_${user.email}`;
+        await user.save();
+      }
+    }
 
-    res.json({ success: true, message: 'Team deleted successfully' });
+    res.json({ success: true, message: 'Team and players deactivated successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

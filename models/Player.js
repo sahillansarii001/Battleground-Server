@@ -26,6 +26,13 @@ const playerSchema = new mongoose.Schema({
     type: String,
     enum: ['ACTIVE', 'INACTIVE'],
     default: 'ACTIVE',
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
+  originalBgmiId: {
+    type: String,
   }
 }, { timestamps: true });
 

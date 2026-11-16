@@ -2,6 +2,14 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 
 const userSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    default: 'Global Admin',
+  },
+  profilePhoto: {
+    type: String,
+    default: '',
+  },
   email: {
     type: String,
     required: true,
@@ -16,6 +24,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['TEAM_USER', 'ADMIN'],
     required: true,
+  },
+  isActive: {
+    type: Boolean,
+    default: true,
   },
   mustChangePassword: {
     type: Boolean,
