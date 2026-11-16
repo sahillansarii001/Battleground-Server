@@ -87,13 +87,22 @@ export const registerTeam = async (req, res) => {
     });
 
     // Create players
-    const playerDocs = players.map(p => ({
-      teamId: newTeam._id,
-      playerName: p.playerName,
-      inGameName: p.inGameName,
-      bgmiId: p.bgmiId,
-      role: p.role,
-    }));
+    const playerDocs = players.map(p => {
+      const raw = String(p.role || 'ASSAULTER').trim().toUpperCase();
+      const role = raw === 'IGL' ? 'IGL' :
+                   (raw.includes('ASSAULT') ? 'ASSAULTER' :
+                   (raw.includes('SNIP') ? 'SNIPER' :
+                   (raw.includes('SUPP') ? 'SUPPORT' :
+                   (raw.includes('FRAG') ? 'FRAGGER' :
+                   (raw.includes('SCOUT') ? 'SCOUT' : raw)))));
+      return {
+        teamId: newTeam._id,
+        playerName: p.playerName,
+        inGameName: p.inGameName,
+        bgmiId: p.bgmiId,
+        role,
+      };
+    });
     await Player.insertMany(playerDocs);
 
     // Fetch community link

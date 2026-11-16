@@ -205,11 +205,25 @@ export const getDashboardStats = async (req, res) => {
 export const getAllTeams = async (req, res) => {
   try {
     const teams = await Team.find().sort({ createdAt: -1 }).lean();
-    const players = await Player.find();
+    const players = await Player.find().lean();
     
     const teamsWithPlayers = teams.map(team => ({
       ...team,
-      players: players.filter(p => p.teamId.toString() === team._id.toString())
+      players: players
+        .filter(p => p.teamId.toString() === team._id.toString())
+        .map(p => {
+          const raw = String(p.role || 'ASSAULTER').trim().toUpperCase();
+          const role = raw === 'IGL' ? 'IGL' :
+                       (raw.includes('ASSAULT') ? 'ASSAULTER' :
+                       (raw.includes('SNIP') ? 'SNIPER' :
+                       (raw.includes('SUPP') ? 'SUPPORT' :
+                       (raw.includes('FRAG') ? 'FRAGGER' :
+                       (raw.includes('SCOUT') ? 'SCOUT' : raw)))));
+          return {
+            ...p,
+            role
+          };
+        })
     }));
     
     res.json({ success: true, data: teamsWithPlayers });
@@ -453,8 +467,16 @@ export const updateTeamDetails = async (req, res) => {
       // Safe replacement: clean player documents without old internal fields
       const playersToInsert = players.map(p => {
         const { _id, createdAt, updatedAt, __v, ...playerData } = p;
+        const raw = String(playerData.role || 'ASSAULTER').trim().toUpperCase();
+        const role = raw === 'IGL' ? 'IGL' :
+                     (raw.includes('ASSAULT') ? 'ASSAULTER' :
+                     (raw.includes('SNIP') ? 'SNIPER' :
+                     (raw.includes('SUPP') ? 'SUPPORT' :
+                     (raw.includes('FRAG') ? 'FRAGGER' :
+                     (raw.includes('SCOUT') ? 'SCOUT' : raw)))));
         return {
           ...playerData,
+          role,
           teamId: id
         };
       });
