@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import 'dotenv/config';
 import Otp from '../models/Otp.js';
 import { sendOtpEmail } from '../services/email.service.js';
+import { loginLimiter, otpVerifyLimiter, getClientIp } from '../middleware/rateLimiter.middleware.js';
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, process.env.JWT_SECRET || 'secret', { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
@@ -29,6 +30,13 @@ export const login = async (req, res) => {
     }
 
     if (user && (await user.matchPassword(password))) {
+      // Clear failed login attempts for this IP on successful authentication
+      try {
+        loginLimiter.resetKey(getClientIp(req));
+      } catch (e) {
+        // Safe ignore
+      }
+
       if (isAdmin && user.lastLogin !== undefined) {
         user.lastLogin = Date.now();
         await user.save();
@@ -140,6 +148,13 @@ export const verifyOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
     }
 
+    // Reset failed OTP attempts for this IP on successful verification
+    try {
+      otpVerifyLimiter.resetKey(getClientIp(req));
+    } catch (e) {
+      // Safe ignore
+    }
+
     res.json({ success: true, message: 'OTP verified successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -169,6 +184,13 @@ export const resetPassword = async (req, res) => {
     await user.save();
 
     await Otp.deleteMany({ email }); // Clear used OTP
+
+    // Reset failed OTP attempts for this IP
+    try {
+      otpVerifyLimiter.resetKey(getClientIp(req));
+    } catch (e) {
+      // Safe ignore
+    }
 
     res.json({ success: true, message: 'Password reset successfully' });
   } catch (error) {
