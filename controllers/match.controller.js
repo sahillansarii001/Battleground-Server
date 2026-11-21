@@ -201,6 +201,21 @@ export const submitMatchResults = async (req, res) => {
     const match = await Match.findById(matchId);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
 
+    // Validate that each team has a unique rank/placement within this match
+    if (scores && Array.isArray(scores)) {
+      const activePlacements = scores
+        .map(s => Number(s.placement))
+        .filter(p => !isNaN(p) && p > 0);
+
+      const duplicates = activePlacements.filter((item, index) => activePlacements.indexOf(item) !== index);
+      if (duplicates.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Duplicate ranking detected: Rank #${duplicates[0]} is assigned to multiple teams. Each squad must have a unique rank for this match.`
+        });
+      }
+    }
+
     // Update match winner and mvp
     if (winnerId) match.winner = winnerId;
     if (mvpId) match.mvp = mvpId;
@@ -249,6 +264,20 @@ export const publishMatchResults = async (req, res) => {
     const matchId = req.params.id;
     const match = await Match.findById(matchId);
     if (!match) return res.status(404).json({ success: false, message: 'Match not found' });
+
+    // Validate that existing scores don't have duplicate placements
+    const scores = await Score.find({ matchId });
+    const activePlacements = scores
+      .map(s => Number(s.placement))
+      .filter(p => !isNaN(p) && p > 0);
+
+    const duplicates = activePlacements.filter((item, index) => activePlacements.indexOf(item) !== index);
+    if (duplicates.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot publish: Duplicate ranking detected for Rank #${duplicates[0]}. Each squad must have a unique rank.`
+      });
+    }
 
     match.resultStatus = 'PUBLISHED';
     await match.save();
