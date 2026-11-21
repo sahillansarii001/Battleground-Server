@@ -5,7 +5,7 @@ import AuditLog from '../models/AuditLog.js';
 import Match from '../models/Match.js';
 import Settings from '../models/Settings.js';
 import Player from '../models/Player.js';
-import { sendTeamApprovalEmail, sendTeamRejectionEmail, sendPasswordResetEmail } from '../services/email.service.js';
+import { sendTeamApprovalEmail, sendTeamRejectionEmail, sendPasswordResetEmail, setTestingModeCache } from '../services/email.service.js';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
@@ -282,6 +282,10 @@ export const updateSettings = async (req, res) => {
       }
     }
     if (req.body.maps !== undefined) settings.maps = req.body.maps;
+    if (req.body.testingMode !== undefined) {
+      settings.testingMode = Boolean(req.body.testingMode);
+      setTestingModeCache(settings.testingMode);
+    }
     await settings.save();
     res.json({ success: true, data: settings });
   } catch (error) {

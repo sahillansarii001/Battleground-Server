@@ -10,6 +10,29 @@ const __dirname = path.dirname(__filename);
 
 let cachedTransporter = null;
 let resendClient = null;
+let cachedTestingMode = null;
+let lastTestingModeCheck = 0;
+
+export const setTestingModeCache = (val) => {
+  cachedTestingMode = Boolean(val);
+  lastTestingModeCheck = Date.now();
+};
+
+export const isTestingModeActive = async () => {
+  const now = Date.now();
+  if (cachedTestingMode !== null && (now - lastTestingModeCheck) < 4000) {
+    return cachedTestingMode;
+  }
+  try {
+    const Settings = (await import('../models/Settings.js')).default;
+    const settings = await Settings.findOne().select('testingMode').lean();
+    cachedTestingMode = Boolean(settings?.testingMode);
+    lastTestingModeCheck = now;
+    return cachedTestingMode;
+  } catch (err) {
+    return Boolean(cachedTestingMode);
+  }
+};
 
 const getResendClient = () => {
   if (process.env.RESEND_API_KEY) {
@@ -126,6 +149,10 @@ const getTemplate = (templateName, variables) => {
 };
 
 export const sendTeamRegistrationReceivedEmail = async (email, teamName, communityLink) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Team Registration Received Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = getTemplate('team-received', { 
     teamName, 
     email,
@@ -135,6 +162,10 @@ export const sendTeamRegistrationReceivedEmail = async (email, teamName, communi
 };
 
 export const sendTeamApprovalEmail = async (email, temporaryPassword, teamName, communityLink) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Team Approval Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = getTemplate('team-approved', { 
     teamName, 
     temporaryPassword, 
@@ -146,6 +177,10 @@ export const sendTeamApprovalEmail = async (email, temporaryPassword, teamName, 
 };
 
 export const sendTeamRejectionEmail = async (email, reason, teamName) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Team Rejection Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = getTemplate('team-rejected', { teamName, reason: reason || 'Not specified by admin' });
   await sendEmail({ email, subject: 'Registration Rejected - BGMI Tournament', html });
 };
@@ -157,21 +192,37 @@ export const sendPasswordResetEmail = async (email, resetToken) => {
 };
 
 export const sendTemporaryPasswordEmail = async (email, temporaryPassword) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Temporary Password Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = getTemplate('temporary-password', { temporaryPassword, loginUrl: process.env.CLIENT_URL || 'http://localhost:3000' });
   await sendEmail({ email, subject: 'Your Temporary Password', html });
 };
 
 export const sendAnnouncementEmail = async (email, announcementText) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Announcement Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = getTemplate('announcement', { announcementText });
   await sendEmail({ email, subject: 'Tournament Announcement', html });
 };
 
 export const sendPlayerChangeApprovalEmail = async (email, playerName) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Player Change Approval Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = getTemplate('player-change', { status: 'Approved', playerName });
   await sendEmail({ email, subject: 'Player Change Approved', html });
 };
 
 export const sendPlayerChangeRejectionEmail = async (email, playerName, reason) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Player Change Rejection Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = getTemplate('player-change', { status: 'Rejected', playerName, reason: reason || 'Not specified' });
   await sendEmail({ email, subject: 'Player Change Rejected', html });
 };
@@ -194,6 +245,10 @@ export const sendAdminNotificationEmail = async (subject, htmlContent) => {
 };
 
 export const sendMatchNotificationEmail = async (email, matchName, roomId, roomPassword, customMessage) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Match Notification Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = `
     <div style="font-family: Arial, sans-serif; background-color: #080A0C; color: #FFFFFF; padding: 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #111518; border: 1px solid rgba(255,106,0,0.3); border-top: 4px solid #FF6A00; padding: 20px;">
@@ -212,6 +267,10 @@ export const sendMatchNotificationEmail = async (email, matchName, roomId, roomP
 };
 
 export const sendMatchBroadcastEmail = async (email, matchTitle, title, message) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Match Broadcast Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = `
     <div style="font-family: Arial, sans-serif; background-color: #080A0C; color: #FFFFFF; padding: 20px;">
       <div style="max-width: 600px; margin: 0 auto; background-color: #111518; border: 1px solid rgba(255,106,0,0.3); border-top: 4px solid #FF6A00; padding: 20px;">
@@ -230,6 +289,10 @@ export const sendMatchBroadcastEmail = async (email, matchTitle, title, message)
 };
 
 export const sendMatchRoomDetailsEmail = async (email, matchName, matchTime, roomId, roomPassword) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Match Room Details Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const html = `
     <div style="font-family: Arial, sans-serif; background-color: #111518; color: #ffffff; padding: 20px;">
       <h2 style="color: #FF6A00; text-transform: uppercase;">Match is LIVE!</h2>
@@ -245,6 +308,10 @@ export const sendMatchRoomDetailsEmail = async (email, matchName, matchTime, roo
 };
 
 export const sendMatchScheduleEmail = async (email, matchTitle, scheduledDate, scheduledTime, map, mode, isUpdate = false) => {
+  if (await isTestingModeActive()) {
+    console.log(`[TESTING MODE] Suppressed Match Schedule Email to: ${email}`);
+    return { success: true, testingMode: true };
+  }
   const dateObj = new Date(scheduledDate);
   const formattedDate = dateObj.toLocaleDateString();
   const title = isUpdate ? 'Match Updated' : 'Match Scheduled';

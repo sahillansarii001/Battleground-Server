@@ -27,6 +27,10 @@ const settingsSchema = new mongoose.Schema(
       type: [String],
       default: ["ERANGEL", "MIRAMAR", "SANHOK", "VIKENDI"],
     },
+    testingMode: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
