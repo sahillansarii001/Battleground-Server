@@ -20,8 +20,7 @@ const rulebookSchema = new mongoose.Schema({
   },
   uploadedBy: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+    ref: 'User'
   },
   publishedAt: {
     type: Date

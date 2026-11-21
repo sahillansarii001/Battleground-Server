@@ -3,12 +3,13 @@ import Rulebook from '../models/Rulebook.js';
 export const uploadRulebook = async (req, res) => {
   try {
     const { title, content, version, status } = req.body;
+    const adminId = req.user?._id || req.user?.id || null;
     const rulebook = new Rulebook({
       title,
       content,
       version,
       status: status || 'DRAFT',
-      uploadedBy: req.user._id || req.user.id
+      uploadedBy: adminId
     });
     await rulebook.save();
     res.status(201).json({ success: true, data: rulebook });
@@ -42,6 +43,9 @@ export const publishRulebook = async (req, res) => {
 
     rulebook.status = 'PUBLISHED';
     rulebook.publishedAt = new Date();
+    if (!rulebook.uploadedBy && (req.user?._id || req.user?.id)) {
+      rulebook.uploadedBy = req.user._id || req.user.id;
+    }
     await rulebook.save();
 
     res.json({ success: true, data: rulebook });
@@ -56,6 +60,9 @@ export const unpublishRulebook = async (req, res) => {
     if (!rulebook) return res.status(404).json({ success: false, message: 'Rulebook not found' });
 
     rulebook.status = 'DRAFT';
+    if (!rulebook.uploadedBy && (req.user?._id || req.user?.id)) {
+      rulebook.uploadedBy = req.user._id || req.user.id;
+    }
     await rulebook.save();
 
     res.json({ success: true, data: rulebook });
@@ -123,6 +130,9 @@ export const updateRulebook = async (req, res) => {
     rulebook.content = content || rulebook.content;
     rulebook.version = version || rulebook.version;
     if (status) rulebook.status = status;
+    if (!rulebook.uploadedBy && (req.user?._id || req.user?.id)) {
+      rulebook.uploadedBy = req.user._id || req.user.id;
+    }
     await rulebook.save();
 
     res.json({ success: true, data: rulebook });
